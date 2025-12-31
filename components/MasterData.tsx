@@ -10,9 +10,10 @@ interface MasterDataProps {
   items: Item[];
   onAddData: (category: MasterSubView, data: any) => void;
   onUpdateData: (category: MasterSubView, data: any) => void;
+  onDeleteData: (category: MasterSubView, id: string) => void;
 }
 
-export const MasterData: React.FC<MasterDataProps> = ({ offices, tacs, positions, employees, items, onAddData, onUpdateData }) => {
+export const MasterData: React.FC<MasterDataProps> = ({ offices, tacs, positions, employees, items, onAddData, onUpdateData, onDeleteData }) => {
   const [activeTab, setActiveTab] = useState<MasterSubView>('Office');
   const [isAdding, setIsAdding] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -44,6 +45,12 @@ export const MasterData: React.FC<MasterDataProps> = ({ offices, tacs, positions
     setFormData(item);
     setIsEditing(true);
     setIsAdding(false);
+  };
+
+  const handleDeleteClick = (id: string) => {
+    if (window.confirm('Apakah Anda yakin ingin menghapus data ini secara permanen?')) {
+      onDeleteData(activeTab, id);
+    }
   };
 
   const handleInputChange = (field: string, value: any) => {
@@ -189,10 +196,8 @@ export const MasterData: React.FC<MasterDataProps> = ({ offices, tacs, positions
                     <tr>
                       <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">ID Office</th>
                       <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Office</th>
-                      <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Alamat</th>
                       <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Kota</th>
                       <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Telepon</th>
-                      <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Fax</th>
                       <th className="px-6 py-4 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Action</th>
                     </tr>
                   </thead>
@@ -201,15 +206,14 @@ export const MasterData: React.FC<MasterDataProps> = ({ offices, tacs, positions
                       <tr key={o.id} className="hover:bg-blue-50/30 transition-colors">
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-slate-400">{o.id}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-slate-900">{o.officeName}</td>
-                        <td className="px-6 py-4 text-sm text-slate-600 truncate max-w-[200px]">{o.address}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">{o.city}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 font-mono">{o.phone}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 font-mono">{o.fax || '-'}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
-                          <button onClick={() => handleEditClick(o)} className="text-blue-600 hover:text-blue-800 font-medium">Edit</button>
+                          <button onClick={() => handleEditClick(o)} className="text-blue-600 hover:text-blue-800 font-bold mr-4">Edit</button>
+                          <button onClick={() => handleDeleteClick(o.id)} className="text-rose-600 hover:text-rose-800 font-bold">Hapus</button>
                         </td>
                       </tr>
-                    )) : <tr><td colSpan={7} className="p-10 text-center text-slate-400 italic">Data Office Kosong</td></tr>}
+                    )) : <tr><td colSpan={5} className="p-10 text-center text-slate-400 italic">Data Office Kosong</td></tr>}
                   </tbody>
                 </table>
               )}
@@ -218,31 +222,26 @@ export const MasterData: React.FC<MasterDataProps> = ({ offices, tacs, positions
                 <table className="min-w-full divide-y divide-slate-200">
                   <thead className="bg-slate-50">
                     <tr>
-                      <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">No</th>
                       <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">ID TAC</th>
-                      <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">ID Office</th>
                       <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Nama TAC</th>
-                      <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Alamat</th>
-                      <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Telepon</th>
-                      <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">FAX</th>
+                      <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Office</th>
+                      <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Kota</th>
                       <th className="px-6 py-4 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Action</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200">
-                    {tacs.length > 0 ? tacs.map((t, idx) => (
+                    {tacs.length > 0 ? tacs.map((t) => (
                       <tr key={t.id} className="hover:bg-blue-50/30 transition-colors">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-400">{idx + 1}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-slate-400">{t.id}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 font-mono">{t.officeId}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-slate-900">{t.name}</td>
-                        <td className="px-6 py-4 text-sm text-slate-600 truncate max-w-[200px]">{t.address}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 font-mono">{t.phone}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 font-mono">{t.fax || '-'}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 font-mono">{t.officeId}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">{t.address}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
-                          <button onClick={() => handleEditClick(t)} className="text-blue-600 hover:text-blue-800 font-medium">Edit</button>
+                          <button onClick={() => handleEditClick(t)} className="text-blue-600 hover:text-blue-800 font-bold mr-4">Edit</button>
+                          <button onClick={() => handleDeleteClick(t.id)} className="text-rose-600 hover:text-rose-800 font-bold">Hapus</button>
                         </td>
                       </tr>
-                    )) : <tr><td colSpan={8} className="p-10 text-center text-slate-400 italic">Data TAC Kosong</td></tr>}
+                    )) : <tr><td colSpan={5} className="p-10 text-center text-slate-400 italic">Data TAC Kosong</td></tr>}
                   </tbody>
                 </table>
               )}
@@ -251,52 +250,42 @@ export const MasterData: React.FC<MasterDataProps> = ({ offices, tacs, positions
                 <table className="min-w-full divide-y divide-slate-200">
                   <thead className="bg-slate-50">
                     <tr>
-                      <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">No.</th>
                       <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">ID Jabatan</th>
                       <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Nama Jabatan</th>
                       <th className="px-6 py-4 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Action</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200">
-                    {positions.length > 0 ? positions.map((p, idx) => (
+                    {positions.length > 0 ? positions.map((p) => (
                       <tr key={p.id} className="hover:bg-blue-50/30 transition-colors">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-400">{idx + 1}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-slate-400">{p.id}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-slate-900">{p.name}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
-                          <button onClick={() => handleEditClick(p)} className="text-blue-600 hover:text-blue-800 font-medium">Edit</button>
+                          <button onClick={() => handleEditClick(p)} className="text-blue-600 hover:text-blue-800 font-bold mr-4">Edit</button>
+                          <button onClick={() => handleDeleteClick(p.id)} className="text-rose-600 hover:text-rose-800 font-bold">Hapus</button>
                         </td>
                       </tr>
-                    )) : <tr><td colSpan={4} className="p-10 text-center text-slate-400 italic">Data Jabatan Kosong</td></tr>}
+                    )) : <tr><td colSpan={3} className="p-10 text-center text-slate-400 italic">Data Jabatan Kosong</td></tr>}
                   </tbody>
                 </table>
               )}
 
               {activeTab === 'Pegawai' && (
-                <table className="min-w-[1600px] divide-y divide-slate-200">
+                <table className="min-w-full divide-y divide-slate-200">
                   <thead className="bg-slate-50">
                     <tr>
-                      <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">No</th>
                       <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">NIK</th>
                       <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Nama</th>
-                      <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">ID Jabatan</th>
                       <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Jabatan</th>
                       <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
-                      <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Alamat</th>
-                      <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Telepon</th>
-                      <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Email</th>
-                      <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">ID Office</th>
-                      <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">ID TAC</th>
                       <th className="px-6 py-4 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Action</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200">
-                    {employees.length > 0 ? employees.map((e, idx) => (
+                    {employees.length > 0 ? employees.map((e) => (
                       <tr key={e.nik} className="hover:bg-blue-50/30 transition-colors">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-400">{idx + 1}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-slate-400">{e.nik}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-slate-900">{e.name}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-slate-600">{e.positionId}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
                           {positions.find(p => p.id === e.positionId)?.name}
                         </td>
@@ -305,16 +294,12 @@ export const MasterData: React.FC<MasterDataProps> = ({ offices, tacs, positions
                              e.status === 'Permanent' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
                            }`}>{e.status}</span>
                         </td>
-                        <td className="px-6 py-4 text-sm text-slate-600 truncate max-w-[150px]">{e.address}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 font-mono">{e.phone}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">{e.email}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 font-mono">{e.officeId}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 font-mono">{e.tacId}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
-                          <button onClick={() => handleEditClick(e)} className="text-blue-600 hover:text-blue-800 font-medium">Edit</button>
+                          <button onClick={() => handleEditClick(e)} className="text-blue-600 hover:text-blue-800 font-bold mr-4">Edit</button>
+                          <button onClick={() => handleDeleteClick(e.nik)} className="text-rose-600 hover:text-rose-800 font-bold">Hapus</button>
                         </td>
                       </tr>
-                    )) : <tr><td colSpan={12} className="p-10 text-center text-slate-400 italic">Data Pegawai Kosong</td></tr>}
+                    )) : <tr><td colSpan={5} className="p-10 text-center text-slate-400 italic">Data Pegawai Kosong</td></tr>}
                   </tbody>
                 </table>
               )}
@@ -323,33 +308,30 @@ export const MasterData: React.FC<MasterDataProps> = ({ offices, tacs, positions
                 <table className="min-w-full divide-y divide-slate-200">
                   <thead className="bg-slate-50">
                     <tr>
-                      <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">ID RM</th>
                       <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Nama Material</th>
                       <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Cabang</th>
                       <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Stok</th>
-                      <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">UoM</th>
                       <th className="px-6 py-4 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Action</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200">
                     {rawMaterials.length > 0 ? rawMaterials.map(i => (
                       <tr key={i.id} className="hover:bg-blue-50/30 transition-colors">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-slate-400">{i.id}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-slate-900">{i.name}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
                           {offices.find(o => o.id === i.officeId)?.officeName || 'Not Set'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className={`text-sm font-bold ${i.stock <= i.minStock ? 'text-rose-600' : 'text-slate-900'}`}>
-                            {i.stock}
+                            {i.stock} {i.unit}
                           </span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-400 uppercase">{i.unit}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
-                          <button onClick={() => handleEditClick(i)} className="text-blue-600 hover:text-blue-800 font-medium">Edit</button>
+                          <button onClick={() => handleEditClick(i)} className="text-blue-600 hover:text-blue-800 font-bold mr-4">Edit</button>
+                          <button onClick={() => handleDeleteClick(i.id)} className="text-rose-600 hover:text-rose-800 font-bold">Hapus</button>
                         </td>
                       </tr>
-                    )) : <tr><td colSpan={6} className="p-10 text-center text-slate-400 italic">Data Bahan Baku Kosong</td></tr>}
+                    )) : <tr><td colSpan={4} className="p-10 text-center text-slate-400 italic">Data Bahan Baku Kosong</td></tr>}
                   </tbody>
                 </table>
               )}
@@ -358,33 +340,30 @@ export const MasterData: React.FC<MasterDataProps> = ({ offices, tacs, positions
                 <table className="min-w-full divide-y divide-slate-200">
                   <thead className="bg-slate-50">
                     <tr>
-                      <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">ID FP</th>
                       <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Nama Produk</th>
                       <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Cabang</th>
                       <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Stok</th>
-                      <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">UoM</th>
                       <th className="px-6 py-4 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Action</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200">
                     {finishedProducts.length > 0 ? finishedProducts.map(i => (
                       <tr key={i.id} className="hover:bg-blue-50/30 transition-colors">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-slate-400">{i.id}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-slate-900">{i.name}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
                            {offices.find(o => o.id === i.officeId)?.officeName || 'Not Set'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className={`text-sm font-bold ${i.stock <= i.minStock ? 'text-rose-600' : 'text-slate-900'}`}>
-                            {i.stock}
+                            {i.stock} {i.unit}
                           </span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-400 uppercase">{i.unit}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
-                          <button onClick={() => handleEditClick(i)} className="text-blue-600 hover:text-blue-800 font-medium">Edit</button>
+                          <button onClick={() => handleEditClick(i)} className="text-blue-600 hover:text-blue-800 font-bold mr-4">Edit</button>
+                          <button onClick={() => handleDeleteClick(i.id)} className="text-rose-600 hover:text-rose-800 font-bold">Hapus</button>
                         </td>
                       </tr>
-                    )) : <tr><td colSpan={6} className="p-10 text-center text-slate-400 italic">Data Produk Kosong</td></tr>}
+                    )) : <tr><td colSpan={4} className="p-10 text-center text-slate-400 italic">Data Produk Kosong</td></tr>}
                   </tbody>
                 </table>
               )}

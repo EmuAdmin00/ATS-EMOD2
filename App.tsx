@@ -85,6 +85,8 @@ const App: React.FC = () => {
         if (data.tacs) setTacs(data.tacs);
         if (data.positions) setPositions(data.positions);
         if (data.employees) setEmployees(data.employees);
+        if (data.users) setUsers(data.users); 
+        if (data.batches) setProductionBatches(data.batches);
         setLastSync(new Date().toLocaleTimeString());
       }
     } catch (err) {
@@ -108,21 +110,80 @@ const App: React.FC = () => {
     if (sheetUrl) {
       try {
         await googleSheetsService.postData(sheetUrl, 'addMasterData', { category, entry });
-        setTimeout(() => handleSync(true), 3000);
+        setTimeout(() => handleSync(true), 1500);
       } catch (err) { console.error("Cloud error", err); }
     }
   };
 
-  // User Management Handlers
-  const handleAddUser = (user: User) => setUsers([...users, user]);
-  const handleUpdateUser = (user: User) => setUsers(users.map(u => u.id === user.id ? user : u));
-  const handleDeleteUser = (id: string) => setUsers(users.filter(u => u.id !== id));
+  const handleUpdateMasterData = async (category: MasterSubView, data: any) => {
+    if (sheetUrl) {
+      try {
+        await googleSheetsService.postData(sheetUrl, 'editMasterData', { category, entry: data });
+        setTimeout(() => handleSync(true), 1500);
+      } catch (err) { console.error("Update error", err); }
+    }
+  };
+
+  const handleDeleteMasterData = async (category: MasterSubView, id: string) => {
+    if (sheetUrl) {
+      try {
+        await googleSheetsService.postData(sheetUrl, 'deleteMasterData', { category, id });
+        // Optimistic UI update
+        if (category === 'Office') setOffices(offices.filter(o => o.id !== id));
+        if (category === 'TAC') setTacs(tacs.filter(t => t.id !== id));
+        if (category === 'Jabatan') setPositions(positions.filter(p => p.id !== id));
+        if (category === 'Pegawai') setEmployees(employees.filter(e => e.nik !== id));
+        if (category === 'Bahan Baku' || category === 'Produk') setItems(items.filter(i => i.id !== id));
+        
+        setTimeout(() => handleSync(true), 1500);
+      } catch (err) { console.error("Delete error", err); }
+    }
+  };
+
+  const handleAddUser = async (user: User) => {
+    setUsers([...users, user]);
+    if (sheetUrl) {
+      try {
+        await googleSheetsService.postData(sheetUrl, 'addUser', user);
+        setTimeout(() => handleSync(true), 1500);
+      } catch (err) { console.error("Add user failed", err); }
+    }
+  };
+
+  const handleUpdateUser = async (user: User) => {
+    setUsers(users.map(u => u.id === user.id ? user : u));
+    if (sheetUrl) {
+      try {
+        await googleSheetsService.postData(sheetUrl, 'editUser', user);
+        setTimeout(() => handleSync(true), 1500);
+      } catch (err) { console.error("Update user failed", err); }
+    }
+  };
+
+  const handleDeleteUser = async (id: string) => {
+    setUsers(users.filter(u => u.id !== id));
+    if (sheetUrl) {
+      try {
+        await googleSheetsService.postData(sheetUrl, 'deleteUser', { id });
+        setTimeout(() => handleSync(true), 1500);
+      } catch (err) { console.error("Delete user failed", err); }
+    }
+  };
+
+  const handleAddProduction = async (batch: ProductionBatch) => {
+    setProductionBatches([batch, ...productionBatches]);
+    if (sheetUrl) {
+      try {
+        await googleSheetsService.postData(sheetUrl, 'addProduction', batch);
+        setTimeout(() => handleSync(true), 2000);
+      } catch (err) { console.error("Production save failed", err); }
+    }
+  };
 
   const filteredItems = selectedOfficeId === 'all' 
     ? items 
     : items.filter(i => i.officeId === selectedOfficeId);
 
-  // Filter View berdasarkan hak akses user
   const permittedViews = currentUser?.allowedViews || [];
 
   const NavItem: React.FC<{ view: View; icon: React.ReactNode }> = ({ view, icon }) => {
@@ -134,7 +195,6 @@ const App: React.FC = () => {
     );
   };
 
-  // Render Login Screen
   if (!currentUser) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
@@ -201,14 +261,13 @@ const App: React.FC = () => {
         <header className="bg-white border-b border-slate-200 px-8 py-3 flex justify-between items-center sticky top-0 z-30">
           <div className="flex items-center gap-6">
             <h2 className="text-xl font-bold text-slate-800">{activeView}</h2>
-            {/* Cabang Filter hanya muncul untuk Admin (all access) */}
             {(currentUser.officeId === 'all' || currentUser.role === 'Super Admin') && (
                <div className="flex items-center gap-2">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Area Kerja:</label>
                   <select 
                     value={selectedOfficeId} 
                     onChange={(e) => setSelectedOfficeId(e.target.value)}
-                    className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-700"
+                    className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="all">Seluruh Indonesia</option>
                     {offices.map(o => <option key={o.id} value={o.id}>{o.city}</option>)}
@@ -252,9 +311,20 @@ const App: React.FC = () => {
 
         <div className="flex-1 overflow-y-auto p-8 scrollbar-hide">
           {activeView === 'Dashboard' && <Dashboard items={filteredItems} transactions={transactions} />}
-          {activeView === 'Master Data' && <MasterData offices={offices} tacs={tacs} positions={positions} employees={employees} items={items} onAddData={handleAddMasterData} onUpdateData={() => {}} />}
+          {activeView === 'Master Data' && (
+            <MasterData 
+              offices={offices} 
+              tacs={tacs} 
+              positions={positions} 
+              employees={employees} 
+              items={items} 
+              onAddData={handleAddMasterData} 
+              onUpdateData={handleUpdateMasterData} 
+              onDeleteData={handleDeleteMasterData}
+            />
+          )}
           {activeView === 'Inventory' && <Inventory items={items} offices={offices} initialOfficeId={selectedOfficeId} />}
-          {activeView === 'Production' && <Production items={filteredItems} batches={productionBatches} onAddBatch={() => {}} />}
+          {activeView === 'Production' && <Production items={filteredItems} batches={productionBatches} onAddBatch={handleAddProduction} />}
           {activeView === 'User Management' && <UserManagement users={users} offices={offices} onAddUser={handleAddUser} onUpdateUser={handleUpdateUser} onDeleteUser={handleDeleteUser} />}
           {activeView === 'Insights' && (
             <div className="bg-white p-8 rounded-xl shadow-sm border border-slate-200">
@@ -262,7 +332,7 @@ const App: React.FC = () => {
                <div className="prose prose-slate max-w-none min-h-[300px]">{aiInsight ? <div dangerouslySetInnerHTML={{ __html: aiInsight.replace(/\n/g, '<br/>') }} /> : <p className="text-slate-400">Pilih Cabang dan klik Refresh di tab System untuk data baru.</p>}</div>
             </div>
           )}
-          {activeView === 'System' && <SystemSettings data={{ items, offices, users }} scriptUrl={sheetUrl} spreadsheetUrl={SPREADSHEET_LINK} lastSync={lastSync} />}
+          {activeView === 'System' && <SystemSettings data={{ items, offices, users, batches: productionBatches }} scriptUrl={sheetUrl} spreadsheetUrl={SPREADSHEET_LINK} lastSync={lastSync} />}
         </div>
       </main>
     </div>
