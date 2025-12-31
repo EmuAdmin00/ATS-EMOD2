@@ -9,7 +9,7 @@ export interface Item {
   stock: number;
   minStock: number;
   pricePerUnit: number;
-  officeId?: string; // Menghubungkan item dengan Cabang
+  officeId?: string;
 }
 
 export interface BranchOffice {
@@ -47,6 +47,16 @@ export interface Employee {
   tacId: string;
 }
 
+export interface User {
+  id: string;
+  username: string;
+  password?: string;
+  fullName: string;
+  role: string;
+  allowedViews: View[];
+  officeId: string | 'all';
+}
+
 export interface Transaction {
   id: string;
   itemId: string;
@@ -65,5 +75,5 @@ export interface ProductionBatch {
   status: 'Draft' | 'Completed';
 }
 
-export type View = 'Dashboard' | 'Master Data' | 'Inventory' | 'Purchasing' | 'Production' | 'Sales' | 'Insights' | 'System';
+export type View = 'Dashboard' | 'Master Data' | 'Inventory' | 'Purchasing' | 'Production' | 'Sales' | 'Insights' | 'System' | 'User Management';
 export type MasterSubView = 'Office' | 'TAC' | 'Jabatan' | 'Pegawai' | 'Bahan Baku' | 'Produk';

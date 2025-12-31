@@ -116,8 +116,17 @@ export const MasterData: React.FC<MasterDataProps> = ({ offices, tacs, positions
         {(activeTab === 'Bahan Baku' || activeTab === 'Produk') && (
           <>
             <div className="col-span-2"><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Nama Item</label><input required className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2" value={formData.name || ''} onChange={e => handleInputChange('name', e.target.value)} /></div>
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Lokasi Cabang</label>
+              <select required className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2" value={formData.officeId || ''} onChange={e => handleInputChange('officeId', e.target.value)}>
+                <option value="">Pilih Cabang</option>
+                {offices.map(o => <option key={o.id} value={o.id}>{o.officeName}</option>)}
+              </select>
+            </div>
             <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Unit (Kg/MT/Liter)</label><input required className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2" value={formData.unit || ''} onChange={e => handleInputChange('unit', e.target.value)} /></div>
-            <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Stok</label><input type="number" required className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2" value={formData.stock || 0} onChange={e => handleInputChange('stock', Number(e.target.value))} /></div>
+            <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Stok Saat Ini</label><input type="number" required className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2" value={formData.stock || 0} onChange={e => handleInputChange('stock', Number(e.target.value))} /></div>
+            <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Min. Stock Alert</label><input type="number" required className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2" value={formData.minStock || 0} onChange={e => handleInputChange('minStock', Number(e.target.value))} /></div>
+            <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Harga per Unit</label><input type="number" required className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2" value={formData.pricePerUnit || 0} onChange={e => handleInputChange('pricePerUnit', Number(e.target.value))} /></div>
           </>
         )}
         
@@ -316,7 +325,7 @@ export const MasterData: React.FC<MasterDataProps> = ({ offices, tacs, positions
                     <tr>
                       <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">ID RM</th>
                       <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Nama Material</th>
-                      <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Kategori</th>
+                      <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Cabang</th>
                       <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Stok</th>
                       <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">UoM</th>
                       <th className="px-6 py-4 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Action</th>
@@ -327,7 +336,9 @@ export const MasterData: React.FC<MasterDataProps> = ({ offices, tacs, positions
                       <tr key={i.id} className="hover:bg-blue-50/30 transition-colors">
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-slate-400">{i.id}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-slate-900">{i.name}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{i.category}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                          {offices.find(o => o.id === i.officeId)?.officeName || 'Not Set'}
+                        </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className={`text-sm font-bold ${i.stock <= i.minStock ? 'text-rose-600' : 'text-slate-900'}`}>
                             {i.stock}
@@ -349,7 +360,7 @@ export const MasterData: React.FC<MasterDataProps> = ({ offices, tacs, positions
                     <tr>
                       <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">ID FP</th>
                       <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Nama Produk</th>
-                      <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Kategori</th>
+                      <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Cabang</th>
                       <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Stok</th>
                       <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">UoM</th>
                       <th className="px-6 py-4 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Action</th>
@@ -360,7 +371,9 @@ export const MasterData: React.FC<MasterDataProps> = ({ offices, tacs, positions
                       <tr key={i.id} className="hover:bg-blue-50/30 transition-colors">
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-slate-400">{i.id}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-slate-900">{i.name}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{i.category}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                           {offices.find(o => o.id === i.officeId)?.officeName || 'Not Set'}
+                        </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className={`text-sm font-bold ${i.stock <= i.minStock ? 'text-rose-600' : 'text-slate-900'}`}>
                             {i.stock}
