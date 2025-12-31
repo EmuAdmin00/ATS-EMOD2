@@ -72,6 +72,21 @@ export const MasterData: React.FC<MasterDataProps> = ({ offices, tacs, positions
             <div className="col-span-2"><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Alamat Lengkap</label><textarea required className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2" value={formData.address || ''} onChange={e => handleInputChange('address', e.target.value)} /></div>
           </>
         )}
+        {activeTab === 'TAC' && (
+          <>
+            <div className="col-span-2"><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Nama TAC</label><input required className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2" value={formData.name || ''} onChange={e => handleInputChange('name', e.target.value)} /></div>
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Office Terkait</label>
+              <select required className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2" value={formData.officeId || ''} onChange={e => handleInputChange('officeId', e.target.value)}>
+                <option value="">Pilih Office</option>
+                {offices.map(o => <option key={o.id} value={o.id}>{o.officeName}</option>)}
+              </select>
+            </div>
+            <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Kota/Lokasi</label><input required className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2" value={formData.address || ''} onChange={e => handleInputChange('address', e.target.value)} /></div>
+            <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Telepon</label><input required className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2" value={formData.phone || ''} onChange={e => handleInputChange('phone', e.target.value)} /></div>
+            <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Fax</label><input className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2" value={formData.fax || ''} onChange={e => handleInputChange('fax', e.target.value)} /></div>
+          </>
+        )}
         {activeTab === 'Pegawai' && (
           <>
             <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">NIK</label><input required className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2" value={formData.nik || ''} disabled={isEditing} onChange={e => handleInputChange('nik', e.target.value)} /></div>
@@ -142,10 +157,10 @@ export const MasterData: React.FC<MasterDataProps> = ({ offices, tacs, positions
         </div>
       </aside>
 
-      <div className="flex-1">
+      <div className="flex-1 overflow-hidden">
         {(isAdding || isEditing) ? renderForm() : (
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden min-h-[600px]">
-            <div className="px-6 py-5 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row justify-between items-center gap-4">
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 min-h-[600px] flex flex-col">
+            <div className="px-6 py-5 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row justify-between items-center gap-4 flex-shrink-0">
               <div>
                 <h3 className="text-xl font-bold text-slate-800">Daftar {activeTab}</h3>
               </div>
@@ -158,7 +173,7 @@ export const MasterData: React.FC<MasterDataProps> = ({ offices, tacs, positions
               </button>
             </div>
 
-            <div className="p-0 overflow-x-auto">
+            <div className="p-0 overflow-x-auto scrollbar-hide flex-1">
               {activeTab === 'Office' && (
                 <table className="min-w-full divide-y divide-slate-200">
                   <thead className="bg-slate-50">
@@ -173,7 +188,7 @@ export const MasterData: React.FC<MasterDataProps> = ({ offices, tacs, positions
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200">
-                    {offices.map(o => (
+                    {offices.length > 0 ? offices.map(o => (
                       <tr key={o.id} className="hover:bg-blue-50/30 transition-colors">
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-slate-400">{o.id}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-slate-900">{o.officeName}</td>
@@ -185,7 +200,7 @@ export const MasterData: React.FC<MasterDataProps> = ({ offices, tacs, positions
                           <button onClick={() => handleEditClick(o)} className="text-blue-600 hover:text-blue-800 font-medium">Edit</button>
                         </td>
                       </tr>
-                    ))}
+                    )) : <tr><td colSpan={7} className="p-10 text-center text-slate-400 italic">Data Office Kosong</td></tr>}
                   </tbody>
                 </table>
               )}
@@ -205,7 +220,7 @@ export const MasterData: React.FC<MasterDataProps> = ({ offices, tacs, positions
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200">
-                    {tacs.map((t, idx) => (
+                    {tacs.length > 0 ? tacs.map((t, idx) => (
                       <tr key={t.id} className="hover:bg-blue-50/30 transition-colors">
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-400">{idx + 1}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-slate-400">{t.id}</td>
@@ -218,7 +233,7 @@ export const MasterData: React.FC<MasterDataProps> = ({ offices, tacs, positions
                           <button onClick={() => handleEditClick(t)} className="text-blue-600 hover:text-blue-800 font-medium">Edit</button>
                         </td>
                       </tr>
-                    ))}
+                    )) : <tr><td colSpan={8} className="p-10 text-center text-slate-400 italic">Data TAC Kosong</td></tr>}
                   </tbody>
                 </table>
               )}
@@ -234,7 +249,7 @@ export const MasterData: React.FC<MasterDataProps> = ({ offices, tacs, positions
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200">
-                    {positions.map((p, idx) => (
+                    {positions.length > 0 ? positions.map((p, idx) => (
                       <tr key={p.id} className="hover:bg-blue-50/30 transition-colors">
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-400">{idx + 1}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-slate-400">{p.id}</td>
@@ -243,13 +258,13 @@ export const MasterData: React.FC<MasterDataProps> = ({ offices, tacs, positions
                           <button onClick={() => handleEditClick(p)} className="text-blue-600 hover:text-blue-800 font-medium">Edit</button>
                         </td>
                       </tr>
-                    ))}
+                    )) : <tr><td colSpan={4} className="p-10 text-center text-slate-400 italic">Data Jabatan Kosong</td></tr>}
                   </tbody>
                 </table>
               )}
 
               {activeTab === 'Pegawai' && (
-                <table className="min-w-full divide-y divide-slate-200">
+                <table className="min-w-[1600px] divide-y divide-slate-200">
                   <thead className="bg-slate-50">
                     <tr>
                       <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">No</th>
@@ -267,7 +282,7 @@ export const MasterData: React.FC<MasterDataProps> = ({ offices, tacs, positions
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200">
-                    {employees.map((e, idx) => (
+                    {employees.length > 0 ? employees.map((e, idx) => (
                       <tr key={e.nik} className="hover:bg-blue-50/30 transition-colors">
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-400">{idx + 1}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-slate-400">{e.nik}</td>
@@ -290,7 +305,7 @@ export const MasterData: React.FC<MasterDataProps> = ({ offices, tacs, positions
                           <button onClick={() => handleEditClick(e)} className="text-blue-600 hover:text-blue-800 font-medium">Edit</button>
                         </td>
                       </tr>
-                    ))}
+                    )) : <tr><td colSpan={12} className="p-10 text-center text-slate-400 italic">Data Pegawai Kosong</td></tr>}
                   </tbody>
                 </table>
               )}
@@ -308,7 +323,7 @@ export const MasterData: React.FC<MasterDataProps> = ({ offices, tacs, positions
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200">
-                    {rawMaterials.map(i => (
+                    {rawMaterials.length > 0 ? rawMaterials.map(i => (
                       <tr key={i.id} className="hover:bg-blue-50/30 transition-colors">
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-slate-400">{i.id}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-slate-900">{i.name}</td>
@@ -323,7 +338,7 @@ export const MasterData: React.FC<MasterDataProps> = ({ offices, tacs, positions
                           <button onClick={() => handleEditClick(i)} className="text-blue-600 hover:text-blue-800 font-medium">Edit</button>
                         </td>
                       </tr>
-                    ))}
+                    )) : <tr><td colSpan={6} className="p-10 text-center text-slate-400 italic">Data Bahan Baku Kosong</td></tr>}
                   </tbody>
                 </table>
               )}
@@ -341,7 +356,7 @@ export const MasterData: React.FC<MasterDataProps> = ({ offices, tacs, positions
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200">
-                    {finishedProducts.map(i => (
+                    {finishedProducts.length > 0 ? finishedProducts.map(i => (
                       <tr key={i.id} className="hover:bg-blue-50/30 transition-colors">
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-slate-400">{i.id}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-slate-900">{i.name}</td>
@@ -356,7 +371,7 @@ export const MasterData: React.FC<MasterDataProps> = ({ offices, tacs, positions
                           <button onClick={() => handleEditClick(i)} className="text-blue-600 hover:text-blue-800 font-medium">Edit</button>
                         </td>
                       </tr>
-                    ))}
+                    )) : <tr><td colSpan={6} className="p-10 text-center text-slate-400 italic">Data Produk Kosong</td></tr>}
                   </tbody>
                 </table>
               )}

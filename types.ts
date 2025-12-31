@@ -9,6 +9,7 @@ export interface Item {
   stock: number;
   minStock: number;
   pricePerUnit: number;
+  officeId?: string; // Menghubungkan item dengan Cabang
 }
 
 export interface BranchOffice {

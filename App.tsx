@@ -148,7 +148,7 @@ const App: React.FC = () => {
               <MasterData offices={offices} tacs={tacs} positions={positions} employees={employees} items={items} onAddData={handleAddMasterData} onUpdateData={handleUpdateMasterData} />
             </div>
           )}
-          {activeView === 'Inventory' && <Inventory items={items} />}
+          {activeView === 'Inventory' && <Inventory items={items} offices={offices} />}
           {activeView === 'Production' && <Production items={items} batches={productionBatches} onAddBatch={handleAddProduction} />}
           {activeView === 'Insights' && (
             <div className="bg-white p-8 rounded-xl shadow-sm border border-slate-200">
