@@ -3,7 +3,15 @@ import { GoogleGenAI } from "@google/genai";
 import { Item, ProductionBatch } from "../types";
 
 export const getProductionInsights = async (items: Item[], batches: ProductionBatch[]) => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  // Always initialize inside the function to ensure it uses the latest process.env
+  // and doesn't crash the app if process is not defined during initial script load.
+  const apiKey = (typeof process !== 'undefined' && process.env) ? process.env.API_KEY : '';
+  
+  if (!apiKey) {
+    return "API Key tidak ditemukan. Pastikan Environment Variable API_KEY sudah dikonfigurasi.";
+  }
+
+  const ai = new GoogleGenAI({ apiKey });
   const model = 'gemini-3-flash-preview';
 
   const inventorySummary = items.map(i => `${i.name}: ${i.stock}${i.unit}`).join(', ');
@@ -20,7 +28,7 @@ export const getProductionInsights = async (items: Item[], batches: ProductionBa
     3. Technical tip for Asphalt Emulsion quality control.
     4. One optimization suggestion for cost reduction.
 
-    Format the response in clear Markdown with headers. Keep it professional.
+    Format the response in clear Markdown with headers. Use Indonesian language for the response.
   `;
 
   try {
@@ -31,6 +39,6 @@ export const getProductionInsights = async (items: Item[], batches: ProductionBa
     return response.text;
   } catch (error) {
     console.error("Gemini Error:", error);
-    return "Error generating insights. Please check your network or API key.";
+    return "Gagal menghasilkan insight. Silakan periksa koneksi atau konfigurasi API Key Anda.";
   }
 };
