@@ -9,8 +9,7 @@ import { MasterData } from './components/MasterData';
 import { getProductionInsights } from './services/geminiService';
 import { googleSheetsService } from './services/googleSheetsService';
 
-// URL Apps Script Baru
-const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwu0V7iTRkPBUQG8UfKs5-KzdecHluShhWtEjHmbMG3zdFihpxk5IgNONzfoCZDqjzT/exec';
+const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyTCJgJPXBnYVaAdRjIBo6sgLMItcye1bx0qXF8Q6O0PJnLPsIuh__gAGGf5Dm472fu/exec';
 const SPREADSHEET_LINK = 'https://docs.google.com/spreadsheets/d/1NWJ8BY5U1fzuBsuIjWQ_mtZpK0KRIaJdW6axDpy6FR4/edit';
 
 const App: React.FC = () => {
@@ -40,12 +39,11 @@ const App: React.FC = () => {
     try {
       const data = await googleSheetsService.fetchAllData(sheetUrl);
       if (data) {
-        // Hanya update jika data dari cloud ditemukan dan valid
-        if (data.items && data.items.length > 0) setItems(data.items);
-        if (data.offices && data.offices.length > 0) setOffices(data.offices);
-        if (data.tacs && data.tacs.length > 0) setTacs(data.tacs);
-        if (data.positions && data.positions.length > 0) setPositions(data.positions);
-        if (data.employees && data.employees.length > 0) setEmployees(data.employees);
+        if (data.items) setItems(data.items);
+        if (data.offices) setOffices(data.offices);
+        if (data.tacs) setTacs(data.tacs);
+        if (data.positions) setPositions(data.positions);
+        if (data.employees) setEmployees(data.employees);
         setLastSync(new Date().toLocaleTimeString());
       }
     } catch (err) {
@@ -67,18 +65,9 @@ const App: React.FC = () => {
     const newId = `${category.substring(0,3).toUpperCase()}-${Date.now()}`;
     const entry = { ...data, id: data.id || newId };
 
-    // Update UI Lokal dulu agar responsif
-    switch(category) {
-      case 'Office': setOffices(prev => [...prev, entry]); break;
-      case 'Jabatan': setPositions(prev => [...prev, entry]); break;
-      case 'Pegawai': setEmployees(prev => [...prev, entry]); break;
-      case 'Bahan Baku': setItems(prev => [...prev, { ...entry, category: 'Raw Material', minStock: 0, pricePerUnit: 0 }]); break;
-    }
-
     if (sheetUrl) {
       try {
         await googleSheetsService.postData(sheetUrl, 'addMasterData', { category, entry });
-        // Tunggu sebentar lalu sync ulang untuk memastikan data cloud & lokal sama
         setTimeout(() => handleSync(true), 3000);
       } catch (err) {
         console.error("Master data cloud push failed", err);
@@ -87,8 +76,6 @@ const App: React.FC = () => {
   };
 
   const handleAddProduction = async (batch: ProductionBatch) => {
-    setItems(prev => prev.map(item => item.id === batch.productId ? { ...item, stock: item.stock + batch.outputQuantity } : item));
-    setProductionBatches(prev => [batch, ...prev]);
     if (sheetUrl) {
       try {
         await googleSheetsService.postData(sheetUrl, 'addProduction', batch);
