@@ -9,7 +9,8 @@ import { MasterData } from './components/MasterData';
 import { getProductionInsights } from './services/geminiService';
 import { googleSheetsService } from './services/googleSheetsService';
 
-const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxZea2zG9PdqFM4VQ1j6XNMIsRcSW3ngxTIP0HOs5coEcTHI7d6x0PR-oUsaPDzZYC8/exec';
+// URL Apps Script Baru
+const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwu0V7iTRkPBUQG8UfKs5-KzdecHluShhWtEjHmbMG3zdFihpxk5IgNONzfoCZDqjzT/exec';
 const SPREADSHEET_LINK = 'https://docs.google.com/spreadsheets/d/1NWJ8BY5U1fzuBsuIjWQ_mtZpK0KRIaJdW6axDpy6FR4/edit';
 
 const App: React.FC = () => {
@@ -39,11 +40,12 @@ const App: React.FC = () => {
     try {
       const data = await googleSheetsService.fetchAllData(sheetUrl);
       if (data) {
-        if (data.items) setItems(data.items);
-        if (data.offices) setOffices(data.offices);
-        if (data.tacs) setTacs(data.tacs);
-        if (data.positions) setPositions(data.positions);
-        if (data.employees) setEmployees(data.employees);
+        // Hanya update jika data dari cloud ditemukan dan valid
+        if (data.items && data.items.length > 0) setItems(data.items);
+        if (data.offices && data.offices.length > 0) setOffices(data.offices);
+        if (data.tacs && data.tacs.length > 0) setTacs(data.tacs);
+        if (data.positions && data.positions.length > 0) setPositions(data.positions);
+        if (data.employees && data.employees.length > 0) setEmployees(data.employees);
         setLastSync(new Date().toLocaleTimeString());
       }
     } catch (err) {
@@ -62,10 +64,10 @@ const App: React.FC = () => {
   }, [sheetUrl, autoSyncEnabled]);
 
   const handleAddMasterData = async (category: MasterSubView, data: any) => {
-    // 1. Local update for immediate UI response
     const newId = `${category.substring(0,3).toUpperCase()}-${Date.now()}`;
     const entry = { ...data, id: data.id || newId };
 
+    // Update UI Lokal dulu agar responsif
     switch(category) {
       case 'Office': setOffices(prev => [...prev, entry]); break;
       case 'Jabatan': setPositions(prev => [...prev, entry]); break;
@@ -73,10 +75,10 @@ const App: React.FC = () => {
       case 'Bahan Baku': setItems(prev => [...prev, { ...entry, category: 'Raw Material', minStock: 0, pricePerUnit: 0 }]); break;
     }
 
-    // 2. Cloud update
     if (sheetUrl) {
       try {
         await googleSheetsService.postData(sheetUrl, 'addMasterData', { category, entry });
+        // Tunggu sebentar lalu sync ulang untuk memastikan data cloud & lokal sama
         setTimeout(() => handleSync(true), 3000);
       } catch (err) {
         console.error("Master data cloud push failed", err);
@@ -93,11 +95,6 @@ const App: React.FC = () => {
         setTimeout(() => handleSync(true), 2000);
       } catch (err) { console.error("Cloud push failed", err); }
     }
-  };
-
-  const saveSheetUrl = (url: string) => {
-    setSheetUrl(url);
-    localStorage.setItem('ats_sheet_url', url);
   };
 
   const fetchInsights = async () => {
@@ -145,7 +142,7 @@ const App: React.FC = () => {
           {activeView === 'Master Data' && (
             <div className="space-y-6">
               <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex justify-between items-center">
-                <div><h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-1">Spreadsheet Integration</h3><p className="text-xs text-slate-400">Pastikan Apps Script terhubung untuk sinkronisasi otomatis.</p></div>
+                <div><h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-1">Cloud Integration</h3><p className="text-xs text-slate-400">Tersambung ke Spreadsheet melalui Apps Script.</p></div>
                 <a href={SPREADSHEET_LINK} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-emerald-600 bg-emerald-50 px-4 py-2 rounded-lg hover:bg-emerald-100 transition-colors flex items-center gap-2"><svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/></svg>Buka Spreadsheet</a>
               </div>
               <MasterData offices={offices} tacs={tacs} positions={positions} employees={employees} items={items} onAddData={handleAddMasterData} />
