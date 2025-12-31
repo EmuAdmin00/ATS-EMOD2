@@ -6,37 +6,50 @@
 export const googleSheetsService = {
   /**
    * Mengambil semua data dari Spreadsheet
-   * @param webAppUrl URL dari hasil "Deploy as Web App" di Google Apps Script
    */
   fetchAllData: async (webAppUrl: string) => {
     try {
+      console.log('Attempting to fetch from:', webAppUrl);
       const response = await fetch(`${webAppUrl}?action=readAll`);
-      if (!response.ok) throw new Error('Network response was not ok');
-      return await response.json();
+      
+      if (!response.ok) {
+        throw new Error(`HTTP Error: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('Data received from cloud:', data);
+      
+      // Jika data kosong atau bukan objek yang diharapkan
+      if (!data || typeof data !== 'object') {
+        console.warn('Received invalid data format from Apps Script');
+        return null;
+      }
+      
+      return data;
     } catch (error) {
-      console.error('Error fetching from Google Sheets:', error);
-      throw error;
+      console.error('CRITICAL: Error fetching from Google Sheets:', error);
+      // Jangan throw agar aplikasi tidak crash, biarkan UI menangani state null
+      return null;
     }
   },
 
   /**
    * Menyimpan transaksi atau perubahan data ke Spreadsheet
-   * @param webAppUrl URL dari Web App
-   * @param payload Data yang ingin disimpan
    */
   postData: async (webAppUrl: string, action: string, data: any) => {
     try {
-      // Google Apps Script seringkali membutuhkan redirect, fetch menangani ini
+      console.log(`Posting action [${action}] to cloud...`);
       const response = await fetch(webAppUrl, {
         method: 'POST',
-        mode: 'no-cors', // Penting untuk Apps Script karena isu CORS
+        mode: 'no-cors', // Apps Script mengharuskan no-cors untuk POST sederhana
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ action, data }),
       });
-      // Karena no-cors, kita tidak bisa membaca response body, 
-      // tapi data biasanya tetap masuk jika setup benar.
+      
+      // no-cors tidak memberikan respon yang bisa dibaca, 
+      // asumsikan sukses jika tidak ada error network
       return true;
     } catch (error) {
       console.error('Error posting to Google Sheets:', error);
