@@ -64,5 +64,5 @@ export interface ProductionBatch {
   status: 'Draft' | 'Completed';
 }
 
-export type View = 'Dashboard' | 'Master Data' | 'Inventory' | 'Purchasing' | 'Production' | 'Sales' | 'Insights';
+export type View = 'Dashboard' | 'Master Data' | 'Inventory' | 'Purchasing' | 'Production' | 'Sales' | 'Insights' | 'System';
 export type MasterSubView = 'Office' | 'TAC' | 'Jabatan' | 'Pegawai' | 'Bahan Baku' | 'Produk';
