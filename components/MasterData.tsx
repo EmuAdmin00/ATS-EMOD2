@@ -9,11 +9,13 @@ interface MasterDataProps {
   employees: Employee[];
   items: Item[];
   onAddData: (category: MasterSubView, data: any) => void;
+  onUpdateData: (category: MasterSubView, data: any) => void;
 }
 
-export const MasterData: React.FC<MasterDataProps> = ({ offices, tacs, positions, employees, items, onAddData }) => {
+export const MasterData: React.FC<MasterDataProps> = ({ offices, tacs, positions, employees, items, onAddData, onUpdateData }) => {
   const [activeTab, setActiveTab] = useState<MasterSubView>('Office');
   const [isAdding, setIsAdding] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   
   const [formData, setFormData] = useState<any>({});
 
@@ -28,9 +30,20 @@ export const MasterData: React.FC<MasterDataProps> = ({ offices, tacs, positions
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onAddData(activeTab, formData);
+    if (isEditing) {
+      onUpdateData(activeTab, formData);
+    } else {
+      onAddData(activeTab, formData);
+    }
     setIsAdding(false);
+    setIsEditing(false);
     setFormData({});
+  };
+
+  const handleEditClick = (item: any) => {
+    setFormData(item);
+    setIsEditing(true);
+    setIsAdding(false);
   };
 
   const handleInputChange = (field: string, value: any) => {
@@ -39,6 +52,67 @@ export const MasterData: React.FC<MasterDataProps> = ({ offices, tacs, positions
 
   const rawMaterials = items.filter(i => i.category !== 'Finished Good');
   const finishedProducts = items.filter(i => i.category === 'Finished Good');
+
+  const renderForm = () => (
+    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
+      <div className="flex justify-between items-center mb-6">
+        <h3 className="text-xl font-bold text-slate-800">{isEditing ? 'Edit' : 'Tambah'} {activeTab}</h3>
+        <button onClick={() => { setIsAdding(false); setIsEditing(false); }} className="text-slate-400 hover:text-slate-600">
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+      
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {activeTab === 'Office' && (
+          <>
+            <div className="col-span-2"><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Nama Office</label><input required className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2" value={formData.officeName || ''} onChange={e => handleInputChange('officeName', e.target.value)} /></div>
+            <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Kota</label><input required className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2" value={formData.city || ''} onChange={e => handleInputChange('city', e.target.value)} /></div>
+            <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Telepon</label><input required className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2" value={formData.phone || ''} onChange={e => handleInputChange('phone', e.target.value)} /></div>
+            <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Fax</label><input className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2" value={formData.fax || ''} onChange={e => handleInputChange('fax', e.target.value)} /></div>
+            <div className="col-span-2"><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Alamat Lengkap</label><textarea required className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2" value={formData.address || ''} onChange={e => handleInputChange('address', e.target.value)} /></div>
+          </>
+        )}
+        {activeTab === 'Pegawai' && (
+          <>
+            <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">NIK</label><input required className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2" value={formData.nik || ''} disabled={isEditing} onChange={e => handleInputChange('nik', e.target.value)} /></div>
+            <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Nama Lengkap</label><input required className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2" value={formData.name || ''} onChange={e => handleInputChange('name', e.target.value)} /></div>
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Jabatan</label>
+              <select required className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2" value={formData.positionId || ''} onChange={e => handleInputChange('positionId', e.target.value)}>
+                <option value="">Pilih Jabatan</option>
+                {positions.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Status</label>
+              <select required className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2" value={formData.status || ''} onChange={e => handleInputChange('status', e.target.value)}>
+                <option value="Permanent">Permanent</option>
+                <option value="Contract">Contract</option>
+                <option value="Probation">Probation</option>
+              </select>
+            </div>
+            <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Email</label><input type="email" className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2" value={formData.email || ''} onChange={e => handleInputChange('email', e.target.value)} /></div>
+            <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Telepon</label><input className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2" value={formData.phone || ''} onChange={e => handleInputChange('phone', e.target.value)} /></div>
+          </>
+        )}
+        {activeTab === 'Jabatan' && (
+          <div className="col-span-2"><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Nama Jabatan</label><input required className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2" value={formData.name || ''} onChange={e => handleInputChange('name', e.target.value)} /></div>
+        )}
+        {(activeTab === 'Bahan Baku' || activeTab === 'Produk') && (
+          <>
+            <div className="col-span-2"><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Nama Item</label><input required className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2" value={formData.name || ''} onChange={e => handleInputChange('name', e.target.value)} /></div>
+            <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Unit (Kg/MT/Liter)</label><input required className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2" value={formData.unit || ''} onChange={e => handleInputChange('unit', e.target.value)} /></div>
+            <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Stok</label><input type="number" required className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2" value={formData.stock || 0} onChange={e => handleInputChange('stock', Number(e.target.value))} /></div>
+          </>
+        )}
+        
+        <div className="col-span-2 mt-6 flex gap-3">
+          <button type="submit" className="bg-blue-600 text-white px-8 py-2.5 rounded-lg font-bold shadow-lg shadow-blue-200 hover:bg-blue-700">Simpan Perubahan</button>
+          <button type="button" onClick={() => { setIsAdding(false); setIsEditing(false); }} className="bg-white border border-slate-200 px-8 py-2.5 rounded-lg font-bold text-slate-600 hover:bg-slate-50">Batal</button>
+        </div>
+      </form>
+    </div>
+  );
 
   return (
     <div className="flex flex-col lg:flex-row gap-6">
@@ -51,7 +125,7 @@ export const MasterData: React.FC<MasterDataProps> = ({ offices, tacs, positions
             {menuItems.map((item) => (
               <button
                 key={item.id}
-                onClick={() => { setActiveTab(item.id); setIsAdding(false); }}
+                onClick={() => { setActiveTab(item.id); setIsAdding(false); setIsEditing(false); }}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${
                   activeTab === item.id
                     ? 'bg-blue-50 text-blue-700 shadow-sm border-l-4 border-blue-600'
@@ -69,73 +143,14 @@ export const MasterData: React.FC<MasterDataProps> = ({ offices, tacs, positions
       </aside>
 
       <div className="flex-1">
-        {isAdding ? (
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-bold text-slate-800">Tambah {activeTab} Baru</h3>
-              <button onClick={() => setIsAdding(false)} className="text-slate-400 hover:text-slate-600">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/></svg>
-              </button>
-            </div>
-            
-            <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {activeTab === 'Office' && (
-                <>
-                  <div className="col-span-2"><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Nama Office</label><input required className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2" onChange={e => handleInputChange('officeName', e.target.value)} /></div>
-                  <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Kota</label><input required className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2" onChange={e => handleInputChange('city', e.target.value)} /></div>
-                  <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Telepon</label><input required className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2" onChange={e => handleInputChange('phone', e.target.value)} /></div>
-                  <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Fax</label><input className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2" onChange={e => handleInputChange('fax', e.target.value)} /></div>
-                  <div className="col-span-2"><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Alamat Lengkap</label><textarea required className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2" onChange={e => handleInputChange('address', e.target.value)} /></div>
-                </>
-              )}
-              {activeTab === 'Pegawai' && (
-                <>
-                  <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">NIK</label><input required className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2" onChange={e => handleInputChange('nik', e.target.value)} /></div>
-                  <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Nama Lengkap</label><input required className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2" onChange={e => handleInputChange('name', e.target.value)} /></div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Jabatan</label>
-                    <select required className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2" onChange={e => handleInputChange('positionId', e.target.value)}>
-                      <option value="">Pilih Jabatan</option>
-                      {positions.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Status</label>
-                    <select required className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2" onChange={e => handleInputChange('status', e.target.value)}>
-                      <option value="Permanent">Permanent</option>
-                      <option value="Contract">Contract</option>
-                      <option value="Probation">Probation</option>
-                    </select>
-                  </div>
-                  <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Email</label><input type="email" className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2" onChange={e => handleInputChange('email', e.target.value)} /></div>
-                  <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Telepon</label><input className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2" onChange={e => handleInputChange('phone', e.target.value)} /></div>
-                </>
-              )}
-              {activeTab === 'Jabatan' && (
-                <div className="col-span-2"><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Nama Jabatan</label><input required className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2" onChange={e => handleInputChange('name', e.target.value)} /></div>
-              )}
-              {activeTab === 'Bahan Baku' && (
-                <>
-                  <div className="col-span-2"><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Nama Bahan</label><input required className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2" onChange={e => handleInputChange('name', e.target.value)} /></div>
-                  <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Unit (Kg/MT/Liter)</label><input required className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2" onChange={e => handleInputChange('unit', e.target.value)} /></div>
-                  <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Stok Awal</label><input type="number" required className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2" onChange={e => handleInputChange('stock', Number(e.target.value))} /></div>
-                </>
-              )}
-              
-              <div className="col-span-2 mt-6 flex gap-3">
-                <button type="submit" className="bg-blue-600 text-white px-8 py-2.5 rounded-lg font-bold shadow-lg shadow-blue-200 hover:bg-blue-700">Simpan Data</button>
-                <button type="button" onClick={() => setIsAdding(false)} className="bg-white border border-slate-200 px-8 py-2.5 rounded-lg font-bold text-slate-600 hover:bg-slate-50">Batal</button>
-              </div>
-            </form>
-          </div>
-        ) : (
+        {(isAdding || isEditing) ? renderForm() : (
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden min-h-[600px]">
             <div className="px-6 py-5 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row justify-between items-center gap-4">
               <div>
                 <h3 className="text-xl font-bold text-slate-800">Daftar {activeTab}</h3>
               </div>
               <button 
-                onClick={() => setIsAdding(true)}
+                onClick={() => { setIsAdding(true); setFormData({}); }}
                 className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 shadow-md shadow-blue-100 active:scale-95"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"/></svg>
@@ -154,6 +169,7 @@ export const MasterData: React.FC<MasterDataProps> = ({ offices, tacs, positions
                       <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Kota</th>
                       <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Telepon</th>
                       <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Fax</th>
+                      <th className="px-6 py-4 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Action</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200">
@@ -165,6 +181,9 @@ export const MasterData: React.FC<MasterDataProps> = ({ offices, tacs, positions
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">{o.city}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 font-mono">{o.phone}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 font-mono">{o.fax || '-'}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
+                          <button onClick={() => handleEditClick(o)} className="text-blue-600 hover:text-blue-800 font-medium">Edit</button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -182,6 +201,7 @@ export const MasterData: React.FC<MasterDataProps> = ({ offices, tacs, positions
                       <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Alamat</th>
                       <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Telepon</th>
                       <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">FAX</th>
+                      <th className="px-6 py-4 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Action</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200">
@@ -194,6 +214,9 @@ export const MasterData: React.FC<MasterDataProps> = ({ offices, tacs, positions
                         <td className="px-6 py-4 text-sm text-slate-600 truncate max-w-[200px]">{t.address}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 font-mono">{t.phone}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 font-mono">{t.fax || '-'}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
+                          <button onClick={() => handleEditClick(t)} className="text-blue-600 hover:text-blue-800 font-medium">Edit</button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -207,6 +230,7 @@ export const MasterData: React.FC<MasterDataProps> = ({ offices, tacs, positions
                       <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">No.</th>
                       <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">ID Jabatan</th>
                       <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Nama Jabatan</th>
+                      <th className="px-6 py-4 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Action</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200">
@@ -215,6 +239,9 @@ export const MasterData: React.FC<MasterDataProps> = ({ offices, tacs, positions
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-400">{idx + 1}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-slate-400">{p.id}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-slate-900">{p.name}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
+                          <button onClick={() => handleEditClick(p)} className="text-blue-600 hover:text-blue-800 font-medium">Edit</button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -236,6 +263,7 @@ export const MasterData: React.FC<MasterDataProps> = ({ offices, tacs, positions
                       <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Email</th>
                       <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">ID Office</th>
                       <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">ID TAC</th>
+                      <th className="px-6 py-4 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Action</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200">
@@ -258,6 +286,9 @@ export const MasterData: React.FC<MasterDataProps> = ({ offices, tacs, positions
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">{e.email}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 font-mono">{e.officeId}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 font-mono">{e.tacId}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
+                          <button onClick={() => handleEditClick(e)} className="text-blue-600 hover:text-blue-800 font-medium">Edit</button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -289,7 +320,7 @@ export const MasterData: React.FC<MasterDataProps> = ({ offices, tacs, positions
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-400 uppercase">{i.unit}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
-                          <button className="text-blue-600 hover:text-blue-800 font-medium">Edit</button>
+                          <button onClick={() => handleEditClick(i)} className="text-blue-600 hover:text-blue-800 font-medium">Edit</button>
                         </td>
                       </tr>
                     ))}
@@ -322,7 +353,7 @@ export const MasterData: React.FC<MasterDataProps> = ({ offices, tacs, positions
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-400 uppercase">{i.unit}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
-                          <button className="text-blue-600 hover:text-blue-800 font-medium">Edit</button>
+                          <button onClick={() => handleEditClick(i)} className="text-blue-600 hover:text-blue-800 font-medium">Edit</button>
                         </td>
                       </tr>
                     ))}

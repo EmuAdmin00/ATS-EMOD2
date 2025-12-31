@@ -75,6 +75,17 @@ const App: React.FC = () => {
     }
   };
 
+  const handleUpdateMasterData = async (category: MasterSubView, data: any) => {
+    if (sheetUrl) {
+      try {
+        await googleSheetsService.postData(sheetUrl, 'editMasterData', { category, entry: data });
+        setTimeout(() => handleSync(true), 3000);
+      } catch (err) {
+        console.error("Master data update failed", err);
+      }
+    }
+  };
+
   const handleAddProduction = async (batch: ProductionBatch) => {
     if (sheetUrl) {
       try {
@@ -132,7 +143,7 @@ const App: React.FC = () => {
                 <div><h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-1">Cloud Integration</h3><p className="text-xs text-slate-400">Tersambung ke Spreadsheet melalui Apps Script.</p></div>
                 <a href={SPREADSHEET_LINK} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-emerald-600 bg-emerald-50 px-4 py-2 rounded-lg hover:bg-emerald-100 transition-colors flex items-center gap-2"><svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/></svg>Buka Spreadsheet</a>
               </div>
-              <MasterData offices={offices} tacs={tacs} positions={positions} employees={employees} items={items} onAddData={handleAddMasterData} />
+              <MasterData offices={offices} tacs={tacs} positions={positions} employees={employees} items={items} onAddData={handleAddMasterData} onUpdateData={handleUpdateMasterData} />
             </div>
           )}
           {activeView === 'Inventory' && <Inventory items={items} />}
