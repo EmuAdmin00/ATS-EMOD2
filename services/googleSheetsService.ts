@@ -19,7 +19,6 @@ export const googleSheetsService = {
       const data = await response.json();
       console.log('Data received from cloud:', data);
       
-      // Jika data kosong atau bukan objek yang diharapkan
       if (!data || typeof data !== 'object') {
         console.warn('Received invalid data format from Apps Script');
         return null;
@@ -28,28 +27,29 @@ export const googleSheetsService = {
       return data;
     } catch (error) {
       console.error('CRITICAL: Error fetching from Google Sheets:', error);
-      // Jangan throw agar aplikasi tidak crash, biarkan UI menangani state null
       return null;
     }
   },
 
   /**
    * Menyimpan transaksi atau perubahan data ke Spreadsheet
+   * Menggunakan text/plain agar Apps Script dapat menerima JSON tanpa Preflight CORS
    */
   postData: async (webAppUrl: string, action: string, data: any) => {
     try {
-      console.log(`Posting action [${action}] to cloud...`);
-      const response = await fetch(webAppUrl, {
+      console.log(`Cloud Action: [${action}]`, data);
+      
+      // Mengirimkan sebagai text/plain adalah praktik standar untuk Apps Script
+      // agar terhindar dari error CORS saat mengirimkan body JSON
+      await fetch(webAppUrl, {
         method: 'POST',
-        mode: 'no-cors', // Apps Script mengharuskan no-cors untuk POST sederhana
+        mode: 'no-cors', 
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'text/plain;charset=utf-8',
         },
         body: JSON.stringify({ action, data }),
       });
       
-      // no-cors tidak memberikan respon yang bisa dibaca, 
-      // asumsikan sukses jika tidak ada error network
       return true;
     } catch (error) {
       console.error('Error posting to Google Sheets:', error);

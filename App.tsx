@@ -8,7 +8,6 @@ import { Production } from './components/Production';
 import { MasterData } from './components/MasterData';
 import { SystemSettings } from './components/SystemSettings';
 import { UserManagement } from './components/UserManagement';
-import { getProductionInsights } from './services/geminiService';
 import { googleSheetsService } from './services/googleSheetsService';
 
 const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyTCJgJPXBnYVaAdRjIBo6sgLMItcye1bx0qXF8Q6O0PJnLPsIuh__gAGGf5Dm472fu/exec';
@@ -40,9 +39,6 @@ const App: React.FC = () => {
   const [selectedOfficeId, setSelectedOfficeId] = useState<string>('all');
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
-
-  const [aiInsight, setAiInsight] = useState<string | null>(null);
-  const [isLoadingInsight, setIsLoadingInsight] = useState(false);
 
   const pollInterval = useRef<number | null>(null);
 
@@ -125,18 +121,26 @@ const App: React.FC = () => {
   };
 
   const handleDeleteMasterData = async (category: MasterSubView, id: string) => {
+    // 1. Optimistic Update (Hapus di UI dulu agar terasa cepat)
+    if (category === 'Office') setOffices(offices.filter(o => o.id !== id));
+    if (category === 'TAC') setTacs(tacs.filter(t => t.id !== id));
+    if (category === 'Jabatan') setPositions(positions.filter(p => p.id !== id));
+    if (category === 'Pegawai') setEmployees(employees.filter(e => e.nik !== id));
+    if (category === 'Bahan Baku' || category === 'Produk') setItems(items.filter(i => i.id !== id));
+
+    // 2. Kirim ke Cloud
     if (sheetUrl) {
       try {
+        // Kirim object yang jelas: category dan ID target
         await googleSheetsService.postData(sheetUrl, 'deleteMasterData', { category, id });
-        // Optimistic UI update
-        if (category === 'Office') setOffices(offices.filter(o => o.id !== id));
-        if (category === 'TAC') setTacs(tacs.filter(t => t.id !== id));
-        if (category === 'Jabatan') setPositions(positions.filter(p => p.id !== id));
-        if (category === 'Pegawai') setEmployees(employees.filter(e => e.nik !== id));
-        if (category === 'Bahan Baku' || category === 'Produk') setItems(items.filter(i => i.id !== id));
         
-        setTimeout(() => handleSync(true), 1500);
-      } catch (err) { console.error("Delete error", err); }
+        // 3. Sync ulang setelah delay yang cukup lama (3.5 detik)
+        // Ini memberi waktu bagi Google Sheets untuk memproses penghapusan baris secara internal
+        setTimeout(() => handleSync(true), 3500);
+      } catch (err) { 
+        console.error("Delete error", err);
+        handleSync(true); // Jika error, tarik data asli lagi
+      }
     }
   };
 
@@ -165,7 +169,7 @@ const App: React.FC = () => {
     if (sheetUrl) {
       try {
         await googleSheetsService.postData(sheetUrl, 'deleteUser', { id });
-        setTimeout(() => handleSync(true), 1500);
+        setTimeout(() => handleSync(true), 3000);
       } catch (err) { console.error("Delete user failed", err); }
     }
   };
@@ -277,7 +281,6 @@ const App: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-4">
-            {/* Fitur Refresh Manual */}
             <div className="flex flex-col items-end mr-2">
                <button 
                 onClick={() => handleSync(false)}
@@ -350,7 +353,7 @@ const App: React.FC = () => {
           {activeView === 'Insights' && (
             <div className="bg-white p-8 rounded-xl shadow-sm border border-slate-200">
                <h2 className="text-2xl font-bold mb-4">Gemini Smart Insights</h2>
-               <div className="prose prose-slate max-w-none min-h-[300px]">{aiInsight ? <div dangerouslySetInnerHTML={{ __html: aiInsight.replace(/\n/g, '<br/>') }} /> : <p className="text-slate-400">Pilih Cabang dan klik Refresh di tab System untuk data baru.</p>}</div>
+               <div className="prose prose-slate max-w-none min-h-[300px]">{lastSync ? <p className="text-slate-400">Insight sedang diproses...</p> : <p className="text-slate-400">Klik Refresh untuk memuat data terbaru.</p>}</div>
             </div>
           )}
           {activeView === 'System' && <SystemSettings data={{ items, offices, users, batches: productionBatches }} scriptUrl={sheetUrl} spreadsheetUrl={SPREADSHEET_LINK} lastSync={lastSync} />}
