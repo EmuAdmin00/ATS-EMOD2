@@ -82,15 +82,16 @@ const App: React.FC = () => {
   useEffect(() => {
     if (sheetUrl && currentUser) {
       handleSync();
-      const interval = setInterval(() => handleSync(true), 60000);
+      const interval = setInterval(() => handleSync(true), 120000); // Sinkronisasi otomatis tiap 2 menit
       return () => clearInterval(interval);
     }
   }, [sheetUrl, currentUser]);
 
   const handleAddMasterData = async (category: MasterSubView, data: any) => {
-    const entry = { ...data, id: data.id || `${category.substring(0,3).toUpperCase()}-${Date.now()}` };
+    const newId = data.id || `${category.substring(0,3).toUpperCase()}-${Date.now()}`;
+    const entry = { ...data, id: newId };
     
-    // Optimistic Add
+    // Optimistic UI Update
     if (category === 'Office') setOffices([...offices, entry]);
     if (category === 'TAC') setTacs([...tacs, entry]);
     if (category === 'Jabatan') setPositions([...positions, entry]);
@@ -103,16 +104,16 @@ const App: React.FC = () => {
     if (sheetUrl) {
       try {
         await googleSheetsService.postData(sheetUrl, 'addMasterData', { category, entry });
-        setTimeout(() => handleSync(true), 3000);
+        setTimeout(() => handleSync(true), 2500);
       } catch (err) { 
-        console.error("Cloud error", err); 
-        handleSync(true); // Revert on failure
+        console.error("Cloud Error", err); 
+        handleSync(true); 
       }
     }
   };
 
   const handleUpdateMasterData = async (category: MasterSubView, data: any) => {
-    // Optimistic Update: Change the app state immediately
+    // Optimistic Update: Langsung ubah state lokal agar layar tidak lag
     if (category === 'Office') setOffices(offices.map(o => o.id === data.id ? data : o));
     if (category === 'TAC') setTacs(tacs.map(t => t.id === data.id ? data : t));
     if (category === 'Jabatan') setPositions(positions.map(p => p.id === data.id ? data : p));
@@ -121,18 +122,19 @@ const App: React.FC = () => {
 
     if (sheetUrl) {
       try {
+        // Kirim perintah edit ke Spreadsheet
         await googleSheetsService.postData(sheetUrl, 'editMasterData', { category, entry: data });
-        // Full sync after a few seconds to ensure consistency
+        // Lakukan sinkronisasi penuh setelah 3 detik untuk memastikan data konsisten
         setTimeout(() => handleSync(true), 3000);
       } catch (err) { 
-        console.error("Update error", err);
-        handleSync(true); // Revert to server state if it fails
+        console.error("Update Cloud Error", err);
+        handleSync(true); // Revert jika gagal
       }
     }
   };
 
   const handleDeleteMasterData = async (category: MasterSubView, id: string) => {
-    // Optimistic Delete
+    // Optimistic Delete: Hapus dari layar dulu
     if (category === 'Office') setOffices(offices.filter(o => o.id !== id));
     if (category === 'TAC') setTacs(tacs.filter(t => t.id !== id));
     if (category === 'Jabatan') setPositions(positions.filter(p => p.id !== id));
@@ -141,10 +143,11 @@ const App: React.FC = () => {
 
     if (sheetUrl) {
       try {
+        // Kirim perintah hapus ke Spreadsheet
         await googleSheetsService.postData(sheetUrl, 'deleteMasterData', { category, id });
         setTimeout(() => handleSync(true), 4000);
       } catch (err) { 
-        console.error("Delete error", err);
+        console.error("Delete Cloud Error", err);
         handleSync(true);
       }
     }
@@ -156,40 +159,27 @@ const App: React.FC = () => {
       try {
         await googleSheetsService.postData(sheetUrl, 'addUser', user);
         setTimeout(() => handleSync(true), 3000);
-      } catch (err) { 
-        console.error("Add user failed", err); 
-        handleSync(true);
-      }
+      } catch (err) { handleSync(true); }
     }
   };
 
   const handleUpdateUser = async (user: User) => {
-    // Optimistic update
     setUsers(users.map(u => u.id === user.id ? user : u));
-    
     if (sheetUrl) {
       try {
         await googleSheetsService.postData(sheetUrl, 'editUser', user);
         setTimeout(() => handleSync(true), 3000);
-      } catch (err) { 
-        console.error("Update user failed", err); 
-        handleSync(true);
-      }
+      } catch (err) { handleSync(true); }
     }
   };
 
   const handleDeleteUser = async (id: string) => {
-    // Optimistic delete
     setUsers(users.filter(u => u.id !== id));
-
     if (sheetUrl) {
       try {
         await googleSheetsService.postData(sheetUrl, 'deleteUser', { id });
         setTimeout(() => handleSync(true), 4000);
-      } catch (err) { 
-        console.error("Delete user failed", err); 
-        handleSync(true);
-      }
+      } catch (err) { handleSync(true); }
     }
   };
 
@@ -199,10 +189,7 @@ const App: React.FC = () => {
       try {
         await googleSheetsService.postData(sheetUrl, 'addProduction', batch);
         setTimeout(() => handleSync(true), 3000);
-      } catch (err) { 
-        console.error("Production save failed", err); 
-        handleSync(true);
-      }
+      } catch (err) { handleSync(true); }
     }
   };
 
