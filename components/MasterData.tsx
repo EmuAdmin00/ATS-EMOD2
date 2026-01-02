@@ -96,21 +96,17 @@ export const MasterData: React.FC<MasterDataProps> = ({ offices, tacs, positions
           <>
             <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">NIK</label><input required className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2" value={formData.nik || ''} disabled={isEditing} onChange={e => handleInputChange('nik', e.target.value)} /></div>
             <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Nama Lengkap</label><input required className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2" value={formData.name || ''} onChange={e => handleInputChange('name', e.target.value)} /></div>
-            
-            <div className="col-span-2 p-4 bg-slate-50 rounded-xl border border-slate-200 grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Jabatan (Master Data)</label>
-                <select required className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2" value={formData.positionId || ''} onChange={e => handleInputChange('positionId', e.target.value)}>
-                  <option value="">Pilih Jabatan</option>
-                  {positions.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Detail Posisi / Spesialisasi</label>
-                <input className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2" placeholder="Contoh: Senior Operator / Team Leader" value={formData.position || ''} onChange={e => handleInputChange('position', e.target.value)} />
-              </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Kategori Jabatan</label>
+              <select required className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2" value={formData.positionId || ''} onChange={e => handleInputChange('positionId', e.target.value)}>
+                <option value="">Pilih Jabatan</option>
+                {positions.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+              </select>
             </div>
-
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Position / Detail Jabatan</label>
+              <input className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2" placeholder="Contoh: Senior Operator / Team Leader" value={formData.position || ''} onChange={e => handleInputChange('position', e.target.value)} />
+            </div>
             <div>
               <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Status Kepegawaian</label>
               <select required className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2" value={formData.status || ''} onChange={e => handleInputChange('status', e.target.value)}>
@@ -289,42 +285,36 @@ export const MasterData: React.FC<MasterDataProps> = ({ offices, tacs, positions
                     <tr>
                       <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">NIK</th>
                       <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Nama</th>
-                      <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Jabatan / Posisi</th>
+                      <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Kategori Jabatan</th>
+                      <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Posisi Detail</th>
                       <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
                       <th className="px-6 py-4 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Action</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200">
-                    {employees.length > 0 ? employees.map((e) => {
-                      const posMaster = positions.find(p => p.id === e.positionId);
-                      return (
-                        <tr key={e.nik} className="hover:bg-blue-50/30 transition-colors">
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-slate-400">{e.nik}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-slate-900">{e.name}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm">
-                            <div className="flex flex-col">
-                              <span className="text-slate-900 font-bold text-xs">
-                                {posMaster?.name || 'N/A'}
-                              </span>
-                              {e.position && (
-                                <span className="text-slate-500 italic text-[10px]">
-                                  {e.position}
-                                </span>
-                              )}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm">
-                             <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                               e.status === 'Permanent' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
-                             }`}>{e.status}</span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
-                            <button onClick={() => handleEditClick(e)} className="text-blue-600 hover:text-blue-800 font-bold mr-4">Edit</button>
-                            <button onClick={() => handleDeleteClick(e.nik)} className="text-rose-600 hover:text-rose-800 font-bold">Hapus</button>
-                          </td>
-                        </tr>
-                      );
-                    }) : <tr><td colSpan={5} className="p-10 text-center text-slate-400 italic">Data Pegawai Kosong</td></tr>}
+                    {employees.length > 0 ? employees.map((e) => (
+                      <tr key={e.nik} className="hover:bg-blue-50/30 transition-colors">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-slate-400">{e.nik}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-slate-900">{e.name}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
+                          <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded text-[10px] font-bold">
+                            {positions.find(p => p.id === e.positionId)?.name || 'N/A'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 italic">
+                          {e.position || '-'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                           <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                             e.status === 'Permanent' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+                           }`}>{e.status}</span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
+                          <button onClick={() => handleEditClick(e)} className="text-blue-600 hover:text-blue-800 font-bold mr-4">Edit</button>
+                          <button onClick={() => handleDeleteClick(e.nik)} className="text-rose-600 hover:text-rose-800 font-bold">Hapus</button>
+                        </td>
+                      </tr>
+                    )) : <tr><td colSpan={6} className="p-10 text-center text-slate-400 italic">Data Pegawai Kosong</td></tr>}
                   </tbody>
                 </table>
               )}
