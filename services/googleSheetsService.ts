@@ -9,50 +9,31 @@ export const googleSheetsService = {
    */
   fetchAllData: async (webAppUrl: string) => {
     try {
-      console.log('Attempting to fetch from:', webAppUrl);
       const response = await fetch(`${webAppUrl}?action=readAll`);
-      
-      if (!response.ok) {
-        throw new Error(`HTTP Error: ${response.status}`);
-      }
-      
+      if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
       const data = await response.json();
-      console.log('Data received from cloud:', data);
-      
-      if (!data || typeof data !== 'object') {
-        console.warn('Received invalid data format from Apps Script');
-        return null;
-      }
-      
       return data;
     } catch (error) {
-      console.error('CRITICAL: Error fetching from Google Sheets:', error);
+      console.error('Error fetching from Google Sheets:', error);
       return null;
     }
   },
 
   /**
-   * Menyimpan transaksi atau perubahan data ke Spreadsheet
-   * Menggunakan text/plain agar Apps Script dapat menerima JSON tanpa Preflight CORS
+   * Menyimpan atau menghapus data di Spreadsheet
    */
   postData: async (webAppUrl: string, action: string, data: any) => {
     try {
-      console.log(`Cloud Action: [${action}]`, data);
-      
-      // Mengirimkan sebagai text/plain adalah praktik standar untuk Apps Script
-      // agar terhindar dari error CORS saat mengirimkan body JSON
+      // Kita kirim sebagai text/plain agar Apps Script tidak menolak karena CORS Preflight
       await fetch(webAppUrl, {
         method: 'POST',
         mode: 'no-cors', 
-        headers: {
-          'Content-Type': 'text/plain;charset=utf-8',
-        },
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({ action, data }),
       });
-      
       return true;
     } catch (error) {
-      console.error('Error posting to Google Sheets:', error);
+      console.error('Cloud Action Error:', error);
       throw error;
     }
   }
