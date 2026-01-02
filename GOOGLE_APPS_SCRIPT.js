@@ -1,6 +1,6 @@
 
 /**
- * ATS-EMOD Cloud Sync Service v2.4 (Two-Way Sync Robust)
+ * ATS-EMOD Cloud Sync Service v2.5 (High Consistency Two-Way Sync)
  * Mendukung Add, Edit, Delete untuk Master Data, Users, dan Production.
  */
 
@@ -116,29 +116,31 @@ function editData(sheetName, entry, category) {
   var data = sheet.getDataRange().getValues();
   var headers = data[0];
   
-  // Identifikasi kolom ID unik
+  // Penentuan Key Unik
   var searchKey = (category === 'Pegawai') ? 'nik' : 'id';
   if (category === 'User') searchKey = 'id';
   
   var idCol = findHeaderIndex(headers, searchKey);
-  if (idCol === -1) idCol = 0; // Fallback ke kolom pertama jika header tidak ditemukan
+  if (idCol === -1) idCol = 0;
 
   var idToFind = entry[searchKey] || entry.id || entry.username;
+  if (!idToFind) return "Error: No ID found in request data";
 
   for (var i = 1; i < data.length; i++) {
-    // Gunakan toString() untuk membandingkan angka dan string
+    // Perbandingan string yang bersih untuk menghindari kegagalan tipe data
     if (data[i][idCol].toString().trim() === idToFind.toString().trim()) {
       for (var j = 0; j < headers.length; j++) {
-        var key = headers[j];
-        if (entry[key] !== undefined) {
-          sheet.getRange(i + 1, j + 1).setValue(entry[key]);
+        var headerName = headers[j];
+        // Hanya update kolom jika datanya dikirim dari App
+        if (entry[headerName] !== undefined) {
+          sheet.getRange(i + 1, j + 1).setValue(entry[headerName]);
         }
       }
-      SpreadsheetApp.flush();
-      return "Success Edit in " + sheetName + " row " + (i + 1);
+      SpreadsheetApp.flush(); // Paksa simpan perubahan ke file fisik
+      return "Success Edit: " + idToFind + " in " + sheetName;
     }
   }
-  return "Error: ID " + idToFind + " not found in " + sheetName;
+  return "Error: Could not find ID " + idToFind + " in " + sheetName;
 }
 
 function deleteData(sheetName, id, category) {
@@ -154,7 +156,7 @@ function deleteData(sheetName, id, category) {
   if (idCol === -1) idCol = 0;
 
   var deletedCount = 0;
-  // Hapus dari bawah ke atas agar indeks baris tidak bergeser saat iterasi
+  // Loop terbalik (bottom-up) adalah kunci untuk hapus baris yang aman
   for (var i = data.length - 1; i >= 1; i--) {
     if (data[i][idCol].toString().trim() === id.toString().trim()) {
       sheet.deleteRow(i + 1);

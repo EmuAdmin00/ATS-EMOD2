@@ -10,7 +10,8 @@ import { SystemSettings } from './components/SystemSettings';
 import { UserManagement } from './components/UserManagement';
 import { googleSheetsService } from './services/googleSheetsService';
 
-const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyTCJgJPXBnYVaAdRjIBo6sgLMItcye1bx0qXF8Q6O0PJnLPsIuh__gAGGf5Dm472fu/exec';
+// Updated with user provided URL and Spreadsheet ID
+const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyqx_mmbWFKJ1kzUo8tBLx3l2jBHAg-HCqidlkk9vFKehoznB4W3027Ahixadk6ICOq/exec';
 const SPREADSHEET_LINK = 'https://docs.google.com/spreadsheets/d/1NWJ8BY5U1fzuBsuIjWQ_mtZpK0KRIaJdW6axDpy6FR4/edit';
 
 const App: React.FC = () => {
@@ -63,11 +64,11 @@ const App: React.FC = () => {
     try {
       const data = await googleSheetsService.fetchAllData(sheetUrl);
       if (data) {
-        if (data.items) setItems(data.items);
         if (data.offices) setOffices(data.offices);
         if (data.tacs) setTacs(data.tacs);
         if (data.positions) setPositions(data.positions);
         if (data.employees) setEmployees(data.employees);
+        if (data.items) setItems(data.items);
         if (data.users) setUsers(data.users); 
         if (data.batches) setProductionBatches(data.batches);
         setLastSync(new Date().toLocaleTimeString());
@@ -82,7 +83,7 @@ const App: React.FC = () => {
   useEffect(() => {
     if (sheetUrl && currentUser) {
       handleSync();
-      const interval = setInterval(() => handleSync(true), 120000); // Sinkronisasi otomatis tiap 2 menit
+      const interval = setInterval(() => handleSync(true), 120000); 
       return () => clearInterval(interval);
     }
   }, [sheetUrl, currentUser]);
@@ -91,7 +92,7 @@ const App: React.FC = () => {
     const newId = data.id || `${category.substring(0,3).toUpperCase()}-${Date.now()}`;
     const entry = { ...data, id: newId };
     
-    // Optimistic UI Update
+    // Optimistic Update
     if (category === 'Office') setOffices([...offices, entry]);
     if (category === 'TAC') setTacs([...tacs, entry]);
     if (category === 'Jabatan') setPositions([...positions, entry]);
@@ -104,7 +105,7 @@ const App: React.FC = () => {
     if (sheetUrl) {
       try {
         await googleSheetsService.postData(sheetUrl, 'addMasterData', { category, entry });
-        setTimeout(() => handleSync(true), 2500);
+        setTimeout(() => handleSync(true), 3000);
       } catch (err) { 
         console.error("Cloud Error", err); 
         handleSync(true); 
@@ -113,7 +114,7 @@ const App: React.FC = () => {
   };
 
   const handleUpdateMasterData = async (category: MasterSubView, data: any) => {
-    // Optimistic Update: Langsung ubah state lokal agar layar tidak lag
+    // Optimistic UI Update
     if (category === 'Office') setOffices(offices.map(o => o.id === data.id ? data : o));
     if (category === 'TAC') setTacs(tacs.map(t => t.id === data.id ? data : t));
     if (category === 'Jabatan') setPositions(positions.map(p => p.id === data.id ? data : p));
@@ -122,19 +123,19 @@ const App: React.FC = () => {
 
     if (sheetUrl) {
       try {
-        // Kirim perintah edit ke Spreadsheet
+        // Kirim data lengkap ke Spreadsheet
         await googleSheetsService.postData(sheetUrl, 'editMasterData', { category, entry: data });
-        // Lakukan sinkronisasi penuh setelah 3 detik untuk memastikan data konsisten
+        // Verifikasi hasil sinkronisasi setelah delay kecil
         setTimeout(() => handleSync(true), 3000);
       } catch (err) { 
         console.error("Update Cloud Error", err);
-        handleSync(true); // Revert jika gagal
+        handleSync(true);
       }
     }
   };
 
   const handleDeleteMasterData = async (category: MasterSubView, id: string) => {
-    // Optimistic Delete: Hapus dari layar dulu
+    // Optimistic Delete
     if (category === 'Office') setOffices(offices.filter(o => o.id !== id));
     if (category === 'TAC') setTacs(tacs.filter(t => t.id !== id));
     if (category === 'Jabatan') setPositions(positions.filter(p => p.id !== id));
@@ -143,7 +144,6 @@ const App: React.FC = () => {
 
     if (sheetUrl) {
       try {
-        // Kirim perintah hapus ke Spreadsheet
         await googleSheetsService.postData(sheetUrl, 'deleteMasterData', { category, id });
         setTimeout(() => handleSync(true), 4000);
       } catch (err) { 
