@@ -14,26 +14,33 @@ const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyTCJgJPXBnY
 const SPREADSHEET_LINK = 'https://docs.google.com/spreadsheets/d/1NWJ8BY5U1fzuBsuIjWQ_mtZpK0KRIaJdW6axDpy6FR4/edit';
 
 const App: React.FC = () => {
+  // Auth State
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [users, setUsers] = useState<User[]>(INITIAL_USERS);
   const [loginForm, setLoginForm] = useState({ username: '', password: '' });
   const [loginError, setLoginError] = useState('');
 
+  // App States
   const [activeView, setActiveView] = useState<View>('Dashboard');
   const [items, setItems] = useState<Item[]>(INITIAL_ITEMS);
   const [offices, setOffices] = useState<BranchOffice[]>(INITIAL_OFFICES);
   const [tacs, setTacs] = useState<TACData[]>(INITIAL_TAC);
   const [positions, setPositions] = useState<Position[]>(INITIAL_POSITIONS);
   const [employees, setEmployees] = useState<Employee[]>(INITIAL_EMPLOYEES);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [productionBatches, setProductionBatches] = useState<ProductionBatch[]>([]);
   
   const [sheetUrl, setSheetUrl] = useState<string>(localStorage.getItem('ats_sheet_url') || DEFAULT_SCRIPT_URL);
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSync, setLastSync] = useState<string | null>(null);
+  const [autoSyncEnabled, setAutoSyncEnabled] = useState(true);
 
+  // Global UI States
   const [selectedOfficeId, setSelectedOfficeId] = useState<string>('all');
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
+
+  const pollInterval = useRef<number | null>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -52,9 +59,15 @@ const App: React.FC = () => {
       setCurrentUser(user);
       setActiveView(user.allowedViews[0] || 'Dashboard');
       setSelectedOfficeId(user.officeId);
+      setLoginError('');
     } else {
-      setLoginError('Kredensial salah.');
+      setLoginError('Username atau Password salah.');
     }
+  };
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+    setLoginForm({ username: '', password: '' });
   };
 
   const handleSync = async (silent = false) => {
@@ -73,91 +86,157 @@ const App: React.FC = () => {
         setLastSync(new Date().toLocaleTimeString());
       }
     } catch (err) {
-      console.error('Sync failed', err);
+      console.error('Auto-sync failed', err);
     } finally {
       if (!silent) setIsSyncing(false);
     }
   };
 
   useEffect(() => {
-    if (sheetUrl && currentUser) {
+    if (sheetUrl && autoSyncEnabled && currentUser) {
       handleSync();
-      const interval = setInterval(() => handleSync(true), 60000);
-      return () => clearInterval(interval);
+      pollInterval.current = window.setInterval(() => handleSync(true), 30000); 
     }
-  }, [sheetUrl, currentUser]);
+    return () => { if (pollInterval.current) clearInterval(pollInterval.current); };
+  }, [sheetUrl, autoSyncEnabled, currentUser]);
 
   const handleAddMasterData = async (category: MasterSubView, data: any) => {
-    const entry = { ...data, id: data.id || `${category.substring(0,3).toUpperCase()}-${Date.now()}` };
+    const newId = `${category.substring(0,3).toUpperCase()}-${Date.now()}`;
+    const entry = { ...data, id: data.id || newId };
     if (sheetUrl) {
       try {
         await googleSheetsService.postData(sheetUrl, 'addMasterData', { category, entry });
-        setTimeout(() => handleSync(true), 2000);
+        setTimeout(() => handleSync(true), 1500);
       } catch (err) { console.error("Cloud error", err); }
     }
   };
 
+  const handleUpdateMasterData = async (category: MasterSubView, data: any) => {
+    if (sheetUrl) {
+      try {
+        await googleSheetsService.postData(sheetUrl, 'editMasterData', { category, entry: data });
+        setTimeout(() => handleSync(true), 1500);
+      } catch (err) { console.error("Update error", err); }
+    }
+  };
+
   const handleDeleteMasterData = async (category: MasterSubView, id: string) => {
-    // 1. Optimistic Update (UI Hapus dulu agar responsif)
+    // 1. Optimistic Update (Hapus di UI dulu agar terasa cepat)
     if (category === 'Office') setOffices(offices.filter(o => o.id !== id));
     if (category === 'TAC') setTacs(tacs.filter(t => t.id !== id));
     if (category === 'Jabatan') setPositions(positions.filter(p => p.id !== id));
     if (category === 'Pegawai') setEmployees(employees.filter(e => e.nik !== id));
     if (category === 'Bahan Baku' || category === 'Produk') setItems(items.filter(i => i.id !== id));
 
+    // 2. Kirim ke Cloud
     if (sheetUrl) {
       try {
-        // 2. Kirim perintah hapus ke cloud
+        // Kirim object yang jelas: category dan ID target
         await googleSheetsService.postData(sheetUrl, 'deleteMasterData', { category, id });
         
-        // 3. JEDA 3.5 DETIK sebelum tarik data baru.
-        // Google Sheets butuh waktu memproses penghapusan baris agar tidak terbaca lagi sebagai cache.
-        setTimeout(() => {
-          handleSync(true);
-        }, 3500);
+        // 3. Sync ulang setelah delay yang cukup lama (3.5 detik)
+        // Ini memberi waktu bagi Google Sheets untuk memproses penghapusan baris secara internal
+        setTimeout(() => handleSync(true), 3500);
       } catch (err) { 
-        console.error("Delete failed", err);
-        handleSync(true);
+        console.error("Delete error", err);
+        handleSync(true); // Jika error, tarik data asli lagi
       }
     }
   };
 
+  const handleAddUser = async (user: User) => {
+    setUsers([...users, user]);
+    if (sheetUrl) {
+      try {
+        await googleSheetsService.postData(sheetUrl, 'addUser', user);
+        setTimeout(() => handleSync(true), 1500);
+      } catch (err) { console.error("Add user failed", err); }
+    }
+  };
+
+  const handleUpdateUser = async (user: User) => {
+    setUsers(users.map(u => u.id === user.id ? user : u));
+    if (sheetUrl) {
+      try {
+        await googleSheetsService.postData(sheetUrl, 'editUser', user);
+        setTimeout(() => handleSync(true), 1500);
+      } catch (err) { console.error("Update user failed", err); }
+    }
+  };
+
+  const handleDeleteUser = async (id: string) => {
+    setUsers(users.filter(u => u.id !== id));
+    if (sheetUrl) {
+      try {
+        await googleSheetsService.postData(sheetUrl, 'deleteUser', { id });
+        setTimeout(() => handleSync(true), 3000);
+      } catch (err) { console.error("Delete user failed", err); }
+    }
+  };
+
+  const handleAddProduction = async (batch: ProductionBatch) => {
+    setProductionBatches([batch, ...productionBatches]);
+    if (sheetUrl) {
+      try {
+        await googleSheetsService.postData(sheetUrl, 'addProduction', batch);
+        setTimeout(() => handleSync(true), 2000);
+      } catch (err) { console.error("Production save failed", err); }
+    }
+  };
+
+  const filteredItems = selectedOfficeId === 'all' 
+    ? items 
+    : items.filter(i => i.officeId === selectedOfficeId);
+
+  const permittedViews = currentUser?.allowedViews || [];
+
   const NavItem: React.FC<{ view: View; icon: React.ReactNode }> = ({ view, icon }) => {
-    if (!currentUser?.allowedViews.includes(view)) return null;
+    if (!permittedViews.includes(view)) return null;
     return (
-      <button 
-        onClick={() => setActiveView(view)} 
-        className={`w-full flex items-center space-x-3 px-5 py-4 rounded-2xl transition-all duration-300 group ${
-          activeView === view 
-            ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-900/30' 
-            : 'text-slate-400 hover:text-white hover:bg-slate-800'
-        }`}
-      >
-        <span className={`${activeView === view ? 'text-white' : 'text-slate-500 group-hover:text-indigo-400'}`}>{icon}</span>
-        <span className="font-bold text-sm">{view}</span>
+      <button onClick={() => setActiveView(view)} className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all ${activeView === view ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-600 hover:bg-slate-100'}`}>
+        {icon} <span className="font-medium">{view}</span>
       </button>
     );
   };
 
   if (!currentUser) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
-        <div className="bg-white w-full max-w-md rounded-[3rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-500">
-          <div className="bg-gradient-to-br from-indigo-600 to-blue-700 p-12 text-center text-white">
-            <h1 className="text-5xl font-black tracking-tighter mb-2">ATS<span className="text-indigo-300">.</span>EMOD</h1>
-            <p className="text-indigo-100 font-bold text-[10px] uppercase tracking-[0.3em] opacity-80">Asphalt Trade Portal</p>
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
+        <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300">
+          <div className="bg-blue-600 p-8 text-center text-white">
+            <h1 className="text-4xl font-black tracking-tighter mb-2">ATS-EMOD</h1>
+            <p className="text-blue-100 font-bold text-xs uppercase tracking-widest">Asphalt Trade System Login</p>
           </div>
           <form onSubmit={handleLogin} className="p-10 space-y-6">
-            {loginError && <div className="bg-rose-50 text-rose-600 p-4 rounded-2xl text-xs font-bold border border-rose-100 text-center">{loginError}</div>}
+            {loginError && (
+              <div className="bg-rose-50 border border-rose-100 text-rose-600 p-3 rounded-xl text-sm font-bold text-center">
+                {loginError}
+              </div>
+            )}
             <div>
-              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Username</label>
-              <input type="text" required className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4 focus:ring-4 focus:ring-indigo-500/10 outline-none font-bold" value={loginForm.username} onChange={e => setLoginForm({...loginForm, username: e.target.value})} placeholder="Admin" />
+              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Username</label>
+              <input 
+                type="text" required 
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                value={loginForm.username}
+                onChange={e => setLoginForm({...loginForm, username: e.target.value})}
+                placeholder="Masukkan username..."
+              />
             </div>
             <div>
-              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Password</label>
-              <input type="password" required className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4 focus:ring-4 focus:ring-indigo-500/10 outline-none font-bold" value={loginForm.password} onChange={e => setLoginForm({...loginForm, password: e.target.value})} placeholder="••••••••" />
+              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Password</label>
+              <input 
+                type="password" required 
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                value={loginForm.password}
+                onChange={e => setLoginForm({...loginForm, password: e.target.value})}
+                placeholder="••••••••"
+              />
             </div>
-            <button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-5 rounded-2xl font-black shadow-2xl shadow-indigo-200 transition-all active:scale-[0.97] uppercase tracking-widest text-xs">Enter Portal</button>
+            <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-2xl font-black shadow-xl shadow-blue-200 transition-all active:scale-95">
+              MASUK KE SISTEM
+            </button>
+            <p className="text-center text-[10px] text-slate-400 font-bold uppercase tracking-tight">Admin Default: Admin / kerjaibadah</p>
           </form>
         </div>
       </div>
@@ -165,104 +244,121 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="flex min-h-screen bg-[#f8fafc] text-slate-900">
-      {/* SaaS Sidebar */}
-      <aside className="w-72 bg-slate-900 flex flex-col fixed inset-y-0 z-50">
-        <div className="p-10">
-          <h1 className="text-3xl font-black text-white tracking-tighter">ATS<span className="text-indigo-500">.</span>EMOD</h1>
-          <div className="mt-3 flex items-center gap-2">
-            <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></div>
-            <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest">System Online</span>
-          </div>
+    <div className="flex min-h-screen bg-slate-50">
+      <aside className="w-64 bg-white border-r border-slate-200 flex flex-col sticky top-0 h-screen z-20">
+        <div className="p-6 border-b border-slate-100">
+          <h1 className="text-2xl font-black text-blue-600 tracking-tighter">ATS-EMOD</h1>
+          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Asphalt Trade System</p>
         </div>
-        
-        <nav className="flex-1 px-5 space-y-2 overflow-y-auto scrollbar-hide">
-          <NavItem view="Dashboard" icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2z"/></svg>} />
+        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+          <NavItem view="Dashboard" icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>} />
+          <NavItem view="Master Data" icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>} />
           <NavItem view="Inventory" icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>} />
-          <NavItem view="Production" icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3"/></svg>} />
-          <div className="h-px bg-slate-800 my-6 mx-4 opacity-50"></div>
-          <NavItem view="Master Data" icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2"/></svg>} />
-          <NavItem view="User Management" icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1z"/></svg>} />
-          <NavItem view="System" icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066"/></svg>} />
+          <NavItem view="Production" icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>} />
+          <NavItem view="User Management" icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>} />
+          <NavItem view="Insights" icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>} />
+          <NavItem view="System" icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>} />
         </nav>
       </aside>
 
-      {/* Main Container */}
-      <div className="flex-1 ml-72 min-h-screen flex flex-col">
-        {/* Modern Glass Header */}
-        <header className="bg-white/80 backdrop-blur-xl border-b border-slate-200/60 h-24 px-12 flex justify-between items-center sticky top-0 z-40">
-          <div className="flex items-center gap-10">
-            <h2 className="text-2xl font-black text-slate-800 tracking-tighter uppercase">{activeView}</h2>
-            <div className="h-8 w-px bg-slate-200"></div>
-            <div className="flex items-center gap-4 bg-slate-100 p-1.5 rounded-2xl border border-slate-200/50">
-               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-3">Area Kerja:</span>
-               <select 
-                value={selectedOfficeId} 
-                onChange={(e) => setSelectedOfficeId(e.target.value)}
-                className="bg-white border-none rounded-xl px-5 py-2.5 text-xs font-black text-slate-700 shadow-sm focus:ring-4 focus:ring-indigo-500/10 cursor-pointer transition-all"
-              >
-                <option value="all">🌏 Seluruh Indonesia</option>
-                {offices.map(o => (
-                  <option key={o.id} value={o.id} disabled={o.city.includes('Planned')}>
-                    {o.city}
-                  </option>
-                ))}
-              </select>
-            </div>
+      <main className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
+        <header className="bg-white border-b border-slate-200 px-8 py-3 flex justify-between items-center sticky top-0 z-30">
+          <div className="flex items-center gap-6">
+            <h2 className="text-xl font-bold text-slate-800">{activeView}</h2>
+            {(currentUser.officeId === 'all' || currentUser.role === 'Super Admin') && (
+               <div className="flex items-center gap-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Area Kerja:</label>
+                  <select 
+                    value={selectedOfficeId} 
+                    onChange={(e) => setSelectedOfficeId(e.target.value)}
+                    className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="all">Seluruh Indonesia</option>
+                    {offices.map(o => <option key={o.id} value={o.id}>{o.city}</option>)}
+                  </select>
+               </div>
+            )}
           </div>
 
-          <div className="flex items-center gap-6">
-             <button 
+          <div className="flex items-center gap-4">
+            <div className="flex flex-col items-end mr-2">
+               <button 
                 onClick={() => handleSync(false)}
                 disabled={isSyncing}
-                className={`p-3.5 rounded-2xl transition-all ${
-                  isSyncing ? 'bg-slate-50 text-slate-300' : 'bg-white border border-slate-200 text-slate-600 hover:text-indigo-600 hover:border-indigo-100 hover:shadow-xl'
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-xs font-black transition-all shadow-sm ${
+                  isSyncing 
+                  ? 'bg-slate-50 text-slate-400 border-slate-200' 
+                  : 'bg-white text-slate-600 border-slate-200 hover:border-blue-500 hover:text-blue-600 hover:shadow-md active:scale-95'
                 }`}
               >
-                <svg className={`w-5 h-5 ${isSyncing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                <svg className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                {isSyncing ? 'SYNCING...' : 'REFRESH'}
               </button>
-            
-            <div className="relative" ref={userMenuRef}>
-              <button onClick={() => setIsUserMenuOpen(!isUserMenuOpen)} className="flex items-center gap-4 group">
-                <div className="text-right hidden sm:block">
-                  <p className="text-sm font-black text-slate-800 leading-none group-hover:text-indigo-600 transition-colors uppercase tracking-tight">{currentUser.fullName}</p>
-                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1.5">{currentUser.role}</p>
-                </div>
-                <div className="w-12 h-12 bg-gradient-to-tr from-indigo-500 to-indigo-700 rounded-2xl flex items-center justify-center text-white font-black text-sm shadow-xl shadow-indigo-200 group-active:scale-95 transition-all">
-                  {currentUser.username.substring(0,2).toUpperCase()}
-                </div>
-              </button>
-              {isUserMenuOpen && (
-                <div className="absolute right-0 mt-4 w-60 bg-white border border-slate-200 rounded-[2rem] shadow-2xl py-4 animate-in fade-in slide-in-from-top-4 duration-300">
-                  <div className="px-7 py-3 border-b border-slate-50 mb-3">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Portal Access</p>
-                  </div>
-                  <button onClick={() => setCurrentUser(null)} className="w-full text-left px-7 py-4 text-sm text-rose-600 hover:bg-rose-50 font-black flex items-center gap-3 transition-colors">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7" /></svg>
-                    Logout System
-                  </button>
-                </div>
+              {lastSync && (
+                <span className="text-[8px] font-bold text-slate-400 uppercase mt-1">Last update: {lastSync}</span>
               )}
+            </div>
+
+            <button className="relative p-2 text-slate-400 hover:text-blue-600 transition-colors">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full border-2 border-white"></span>
+            </button>
+
+            <div className="flex items-center gap-3 pl-4 border-l border-slate-100">
+              <div className="text-right hidden sm:block">
+                <p className="text-sm font-bold text-slate-800 leading-none">{currentUser.fullName}</p>
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tight mt-1">{currentUser.role}</p>
+              </div>
+              
+              <div className="relative" ref={userMenuRef}>
+                <button 
+                  onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                  className="w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold border-2 border-transparent hover:border-blue-200 transition-all overflow-hidden"
+                >
+                  <span className="text-sm">{currentUser.username.substring(0, 2).toUpperCase()}</span>
+                </button>
+
+                {isUserMenuOpen && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-xl shadow-xl py-2 animate-in fade-in zoom-in duration-150">
+                    <button className="w-full text-left px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 flex items-center gap-2">Profil</button>
+                    <button className="w-full text-left px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 flex items-center gap-2">Ubah Password</button>
+                    <div className="h-px bg-slate-100 my-1"></div>
+                    <button onClick={handleLogout} className="w-full text-left px-4 py-2 text-sm text-rose-600 hover:bg-rose-50 flex items-center gap-2 font-bold">Logout</button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </header>
 
-        <div className="p-12 flex-1 overflow-y-auto scrollbar-hide">
-          <div className="max-w-7xl mx-auto animate-in fade-in slide-in-from-bottom-8 duration-700">
-            {activeView === 'Dashboard' && <Dashboard items={items.filter(i => selectedOfficeId === 'all' || i.officeId === selectedOfficeId)} transactions={[]} />}
-            {activeView === 'Inventory' && <Inventory items={items} offices={offices} initialOfficeId={selectedOfficeId} />}
-            {activeView === 'Production' && <Production items={items.filter(i => selectedOfficeId === 'all' || i.officeId === selectedOfficeId)} batches={productionBatches} onAddBatch={() => {}} />}
-            {activeView === 'Master Data' && (
-              <MasterData 
-                offices={offices} tacs={tacs} positions={positions} employees={employees} items={items} 
-                onAddData={handleAddMasterData} onUpdateData={() => {}} onDeleteData={handleDeleteMasterData} 
-              />
-            )}
-            {activeView === 'User Management' && <UserManagement users={users} offices={offices} onAddUser={() => {}} onUpdateUser={() => {}} onDeleteUser={() => {}} />}
-            {activeView === 'System' && <SystemSettings data={{ items, offices }} scriptUrl={sheetUrl} spreadsheetUrl={SPREADSHEET_LINK} lastSync={lastSync} />}
-          </div>
+        <div className="flex-1 overflow-y-auto p-8 scrollbar-hide">
+          {activeView === 'Dashboard' && <Dashboard items={filteredItems} transactions={transactions} />}
+          {activeView === 'Master Data' && (
+            <MasterData 
+              offices={offices} 
+              tacs={tacs} 
+              positions={positions} 
+              employees={employees} 
+              items={items} 
+              onAddData={handleAddMasterData} 
+              onUpdateData={handleUpdateMasterData} 
+              onDeleteData={handleDeleteMasterData}
+            />
+          )}
+          {activeView === 'Inventory' && <Inventory items={items} offices={offices} initialOfficeId={selectedOfficeId} />}
+          {activeView === 'Production' && <Production items={filteredItems} batches={productionBatches} onAddBatch={handleAddProduction} />}
+          {activeView === 'User Management' && <UserManagement users={users} offices={offices} onAddUser={handleAddUser} onUpdateUser={handleUpdateUser} onDeleteUser={handleDeleteUser} />}
+          {activeView === 'Insights' && (
+            <div className="bg-white p-8 rounded-xl shadow-sm border border-slate-200">
+               <h2 className="text-2xl font-bold mb-4">Gemini Smart Insights</h2>
+               <div className="prose prose-slate max-w-none min-h-[300px]">{lastSync ? <p className="text-slate-400">Insight sedang diproses...</p> : <p className="text-slate-400">Klik Refresh untuk memuat data terbaru.</p>}</div>
+            </div>
+          )}
+          {activeView === 'System' && <SystemSettings data={{ items, offices, users, batches: productionBatches }} scriptUrl={sheetUrl} spreadsheetUrl={SPREADSHEET_LINK} lastSync={lastSync} />}
         </div>
-      </div>
+      </main>
     </div>
   );
 };
