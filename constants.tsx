@@ -26,11 +26,11 @@ export const INITIAL_USERS: User[] = [
 ];
 
 export const INITIAL_OFFICES: BranchOffice[] = [
-  { id: 'OFF01', officeName: 'Head Office Jakarta', address: 'Jl. Jendral Sudirman Kav. 52-53', city: 'Jakarta Selatan', phone: '021-5150000', fax: '021-5150001' },
+  { id: 'OFF01', officeName: 'Head Office Jakarta', address: 'Jl. Jendral Sudirman Kav. 52-53', city: 'Jakarta (Planned)', phone: '021-5150000', fax: '021-5150001' },
   { id: 'OFF02', officeName: 'Cabang Makassar', address: 'Kawasan Industri Makassar (KIMA)', city: 'Makassar', phone: '0411-472000', fax: '0411-472001' },
   { id: 'OFF03', officeName: 'Cabang Palu', address: 'Jl. Trans Sulawesi, Pantoloan', city: 'Palu', phone: '0451-491000', fax: '0451-491001' },
   { id: 'OFF04', officeName: 'Cabang Samarinda', address: 'Jl. Yos Sudarso, Area Pelabuhan', city: 'Samarinda', phone: '0541-741000', fax: '0541-741001' },
-  { id: 'OFF05', officeName: 'Cabang Banjarmasin', address: 'Kawasan Industri Terpadu (Coming Soon)', city: 'Banjarmasin', phone: '-', fax: '-' },
+  { id: 'OFF05', officeName: 'Cabang Banjarmasin', address: 'Kawasan Industri Terpadu (Coming Soon)', city: 'Banjarmasin (Planned)', phone: '-', fax: '-' },
 ];
 
 export const INITIAL_ITEMS: Item[] = [

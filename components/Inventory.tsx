@@ -1,32 +1,19 @@
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useMemo } from 'react';
 import { Item, BranchOffice, Category } from '../types';
 
 interface InventoryProps {
   items: Item[];
   offices: BranchOffice[];
   initialOfficeId?: string;
-  onOfficeChange?: (id: string) => void;
 }
 
-export const Inventory: React.FC<InventoryProps> = ({ items, offices, initialOfficeId = 'all', onOfficeChange }) => {
-  const [selectedOfficeId, setSelectedOfficeId] = useState<string>(initialOfficeId);
-
-  // Sync with external state changes (like Header filter)
-  useEffect(() => {
-    setSelectedOfficeId(initialOfficeId);
-  }, [initialOfficeId]);
-
-  const handleOfficeSelect = (id: string) => {
-    setSelectedOfficeId(id);
-    if (onOfficeChange) onOfficeChange(id);
-  };
-
-  // Grouping logic
+export const Inventory: React.FC<InventoryProps> = ({ items, offices, initialOfficeId = 'all' }) => {
+  // Grouping logic based on initialOfficeId from props (global selection)
   const groupedData = useMemo(() => {
-    const filtered = selectedOfficeId === 'all' 
+    const filtered = initialOfficeId === 'all' 
       ? items 
-      : items.filter(i => i.officeId === selectedOfficeId);
+      : items.filter(i => i.officeId === initialOfficeId);
 
     const groups: Record<Category, Item[]> = {
       'Raw Material': [],
@@ -39,19 +26,19 @@ export const Inventory: React.FC<InventoryProps> = ({ items, offices, initialOff
     });
 
     return groups;
-  }, [items, selectedOfficeId]);
+  }, [items, initialOfficeId]);
 
   const stats = useMemo(() => {
-    const filtered = selectedOfficeId === 'all' 
+    const filtered = initialOfficeId === 'all' 
       ? items 
-      : items.filter(i => i.officeId === selectedOfficeId);
+      : items.filter(i => i.officeId === initialOfficeId);
     
     return {
       count: filtered.length,
       low: filtered.filter(i => i.stock <= i.minStock).length,
       val: filtered.reduce((acc, curr) => acc + (curr.stock * curr.pricePerUnit), 0)
     };
-  }, [items, selectedOfficeId]);
+  }, [items, initialOfficeId]);
 
   return (
     <div className="space-y-6">
@@ -84,33 +71,6 @@ export const Inventory: React.FC<InventoryProps> = ({ items, offices, initialOff
           </div>
           <p className="text-xl font-black text-slate-900">Rp {stats.val.toLocaleString()}</p>
         </div>
-      </div>
-
-      {/* Branch Selector (Redundant but kept for quick context switching) */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide border-b border-slate-100 mb-4">
-        <button 
-          onClick={() => handleOfficeSelect('all')}
-          className={`px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all border ${
-            selectedOfficeId === 'all' 
-            ? 'bg-blue-600 text-white border-blue-600 shadow-md' 
-            : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'
-          }`}
-        >
-          All
-        </button>
-        {offices.map(office => (
-          <button 
-            key={office.id}
-            onClick={() => handleOfficeSelect(office.id)}
-            className={`px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all border whitespace-nowrap ${
-              selectedOfficeId === office.id 
-              ? 'bg-blue-600 text-white border-blue-600 shadow-md' 
-              : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'
-            }`}
-          >
-            {office.city}
-          </button>
-        ))}
       </div>
 
       {/* Grouped Content */}
