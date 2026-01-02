@@ -39,6 +39,7 @@ export interface Employee {
   nik: string;
   name: string;
   positionId: string;
+  position?: string;
   status: 'Permanent' | 'Contract' | 'Probation';
   address: string;
   phone: string;

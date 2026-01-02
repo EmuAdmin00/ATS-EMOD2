@@ -1,6 +1,6 @@
 
 /**
- * ATS-EMOD Cloud Sync Service v2.9 (Status Check Enabled)
+ * ATS-EMOD Cloud Sync Service v2.9.2 (Employees with Detail Position Column)
  */
 
 function doGet(e) {
@@ -60,7 +60,7 @@ function setupSheets() {
     'Offices': ['id', 'officeName', 'address', 'city', 'phone', 'fax'],
     'Tacs': ['id', 'officeId', 'name', 'address', 'phone', 'fax'],
     'Positions': ['id', 'name'],
-    'Employees': ['nik', 'name', 'positionId', 'status', 'address', 'phone', 'email', 'officeId', 'tacId'],
+    'Employees': ['nik', 'name', 'positionId', 'position', 'status', 'address', 'phone', 'email', 'officeId', 'tacId'],
     'RawMaterials': ['id', 'name', 'category', 'unit', 'stock', 'minStock', 'pricePerUnit', 'officeId'],
     'Products': ['id', 'name', 'category', 'unit', 'stock', 'minStock', 'pricePerUnit', 'officeId'],
     'Users': ['id', 'username', 'password', 'fullName', 'role', 'allowedViews', 'officeId'],
@@ -79,7 +79,7 @@ function setupSheets() {
     // Freeze header
     sheet.setFrozenRows(1);
   }
-  return "Spreadsheet initialized successfully. RawMaterials and Products sheets are ready.";
+  return "Spreadsheet initialized successfully. Employees sheet now includes 'position' detail column.";
 }
 
 function getSheetName(category) {

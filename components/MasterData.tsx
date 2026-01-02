@@ -23,7 +23,7 @@ export const MasterData: React.FC<MasterDataProps> = ({ offices, tacs, positions
   const menuItems: { id: MasterSubView; label: string; icon: React.ReactNode }[] = [
     { id: 'Office', label: 'Branch Office', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg> },
     { id: 'TAC', label: 'Data TAC', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg> },
-    { id: 'Jabatan', label: 'Data Jabatan', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg> },
+    { id: 'Jabatan', label: 'Data Jabatan', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2-2v10a2 2 0 002 2z"/></svg> },
     { id: 'Pegawai', label: 'Data Pegawai', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg> },
     { id: 'Bahan Baku', label: 'Data Bahan Baku', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg> },
     { id: 'Produk', label: 'Data Produk', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/></svg> },
@@ -75,7 +75,6 @@ export const MasterData: React.FC<MasterDataProps> = ({ offices, tacs, positions
             <div className="col-span-2"><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Nama Office</label><input required className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2" value={formData.officeName || ''} onChange={e => handleInputChange('officeName', e.target.value)} /></div>
             <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Kota</label><input required className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2" value={formData.city || ''} onChange={e => handleInputChange('city', e.target.value)} /></div>
             <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Telepon</label><input required className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2" value={formData.phone || ''} onChange={e => handleInputChange('phone', e.target.value)} /></div>
-            <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Fax</label><input className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2" value={formData.fax || ''} onChange={e => handleInputChange('fax', e.target.value)} /></div>
             <div className="col-span-2"><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Alamat Lengkap</label><textarea required className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2" value={formData.address || ''} onChange={e => handleInputChange('address', e.target.value)} /></div>
           </>
         )}
@@ -91,7 +90,6 @@ export const MasterData: React.FC<MasterDataProps> = ({ offices, tacs, positions
             </div>
             <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Kota/Lokasi</label><input required className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2" value={formData.address || ''} onChange={e => handleInputChange('address', e.target.value)} /></div>
             <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Telepon</label><input required className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2" value={formData.phone || ''} onChange={e => handleInputChange('phone', e.target.value)} /></div>
-            <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Fax</label><input className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2" value={formData.fax || ''} onChange={e => handleInputChange('fax', e.target.value)} /></div>
           </>
         )}
         {activeTab === 'Pegawai' && (
@@ -99,22 +97,33 @@ export const MasterData: React.FC<MasterDataProps> = ({ offices, tacs, positions
             <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">NIK</label><input required className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2" value={formData.nik || ''} disabled={isEditing} onChange={e => handleInputChange('nik', e.target.value)} /></div>
             <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Nama Lengkap</label><input required className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2" value={formData.name || ''} onChange={e => handleInputChange('name', e.target.value)} /></div>
             <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Jabatan</label>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Kategori Jabatan</label>
               <select required className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2" value={formData.positionId || ''} onChange={e => handleInputChange('positionId', e.target.value)}>
                 <option value="">Pilih Jabatan</option>
                 {positions.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Status</label>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Position / Detail Jabatan</label>
+              <input className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2" placeholder="Contoh: Senior Operator / Team Leader" value={formData.position || ''} onChange={e => handleInputChange('position', e.target.value)} />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Status Kepegawaian</label>
               <select required className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2" value={formData.status || ''} onChange={e => handleInputChange('status', e.target.value)}>
                 <option value="Permanent">Permanent</option>
                 <option value="Contract">Contract</option>
                 <option value="Probation">Probation</option>
               </select>
             </div>
-            <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Email</label><input type="email" className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2" value={formData.email || ''} onChange={e => handleInputChange('email', e.target.value)} /></div>
-            <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Telepon</label><input className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2" value={formData.phone || ''} onChange={e => handleInputChange('phone', e.target.value)} /></div>
+            <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Email Kerja</label><input type="email" className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2" value={formData.email || ''} onChange={e => handleInputChange('email', e.target.value)} /></div>
+            <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">No. WhatsApp</label><input className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2" value={formData.phone || ''} onChange={e => handleInputChange('phone', e.target.value)} /></div>
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Penempatan Cabang</label>
+              <select required className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2" value={formData.officeId || ''} onChange={e => handleInputChange('officeId', e.target.value)}>
+                <option value="">Pilih Cabang</option>
+                {offices.map(o => <option key={o.id} value={o.id}>{o.officeName}</option>)}
+              </select>
+            </div>
           </>
         )}
         {activeTab === 'Jabatan' && (
@@ -276,7 +285,8 @@ export const MasterData: React.FC<MasterDataProps> = ({ offices, tacs, positions
                     <tr>
                       <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">NIK</th>
                       <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Nama</th>
-                      <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Jabatan</th>
+                      <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Kategori Jabatan</th>
+                      <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Posisi Detail</th>
                       <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
                       <th className="px-6 py-4 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Action</th>
                     </tr>
@@ -287,7 +297,12 @@ export const MasterData: React.FC<MasterDataProps> = ({ offices, tacs, positions
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-slate-400">{e.nik}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-slate-900">{e.name}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
-                          {positions.find(p => p.id === e.positionId)?.name}
+                          <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded text-[10px] font-bold">
+                            {positions.find(p => p.id === e.positionId)?.name || 'N/A'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 italic">
+                          {e.position || '-'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm">
                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
@@ -299,7 +314,7 @@ export const MasterData: React.FC<MasterDataProps> = ({ offices, tacs, positions
                           <button onClick={() => handleDeleteClick(e.nik)} className="text-rose-600 hover:text-rose-800 font-bold">Hapus</button>
                         </td>
                       </tr>
-                    )) : <tr><td colSpan={5} className="p-10 text-center text-slate-400 italic">Data Pegawai Kosong</td></tr>}
+                    )) : <tr><td colSpan={6} className="p-10 text-center text-slate-400 italic">Data Pegawai Kosong</td></tr>}
                   </tbody>
                 </table>
               )}
