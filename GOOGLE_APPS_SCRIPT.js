@@ -1,6 +1,6 @@
 
 /**
- * ATS-EMOD Cloud Sync Service v2.2
+ * ATS-EMOD Cloud Sync Service v2.3 (Robust Sync)
  * Mendukung Add, Edit, Delete untuk Master Data, Users, dan Production.
  */
 
@@ -19,7 +19,6 @@ function doPost(e) {
     var data = request.data;
     var result = "Action not found";
 
-    // Mapping Action dari App.tsx
     if (action === 'addMasterData') {
       result = addData(getSheetName(data.category), data.entry);
     } else if (action === 'editMasterData') {
@@ -86,6 +85,13 @@ function getSheetValues(ss, name) {
   return data;
 }
 
+function findHeaderIndex(headers, target) {
+  for (var i = 0; i < headers.length; i++) {
+    if (headers[i].toString().toLowerCase() === target.toLowerCase()) return i;
+  }
+  return -1;
+}
+
 function addData(sheetName, entry) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getSheetByName(sheetName);
@@ -94,9 +100,11 @@ function addData(sheetName, entry) {
   var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
   var row = [];
   for (var i = 0; i < headers.length; i++) {
-    row.push(entry[headers[i]] !== undefined ? entry[headers[i]] : "");
+    var key = headers[i];
+    row.push(entry[key] !== undefined ? entry[key] : "");
   }
   sheet.appendRow(row);
+  SpreadsheetApp.flush();
   return "Success Add to " + sheetName;
 }
 
@@ -106,23 +114,17 @@ function editData(sheetName, entry, category) {
   var data = sheet.getDataRange().getValues();
   var headers = data[0];
   
-  // Tentukan kolom ID
-  var idCol = 0; // Default kolom A
-  var idToFind = entry.id;
-
-  if (category === 'Pegawai') {
-    idCol = headers.indexOf('nik');
-    idToFind = entry.nik;
-  } else {
-    idCol = headers.indexOf('id');
-    if (idCol === -1) idCol = 0;
-  }
+  var idToFind = (category === 'Pegawai') ? entry.nik : (entry.id || entry.username);
+  var idCol = (category === 'Pegawai') ? findHeaderIndex(headers, 'nik') : findHeaderIndex(headers, 'id');
+  
+  if (idCol === -1) idCol = 0;
 
   for (var i = 1; i < data.length; i++) {
     if (data[i][idCol].toString() === idToFind.toString()) {
       for (var j = 0; j < headers.length; j++) {
-        if (entry[headers[j]] !== undefined) {
-          sheet.getRange(i + 1, j + 1).setValue(entry[headers[j]]);
+        var key = headers[j];
+        if (entry[key] !== undefined) {
+          sheet.getRange(i + 1, j + 1).setValue(entry[key]);
         }
       }
       SpreadsheetApp.flush();
@@ -138,16 +140,10 @@ function deleteData(sheetName, id, category) {
   var data = sheet.getDataRange().getValues();
   var headers = data[0];
   
-  var idCol = 0;
-  if (category === 'Pegawai') {
-    idCol = headers.indexOf('nik');
-  } else {
-    idCol = headers.indexOf('id');
-    if (idCol === -1) idCol = 0;
-  }
+  var idCol = (category === 'Pegawai') ? findHeaderIndex(headers, 'nik') : findHeaderIndex(headers, 'id');
+  if (idCol === -1) idCol = 0;
 
   var deleted = 0;
-  // Loop dari bawah ke atas agar indeks baris stabil
   for (var i = data.length - 1; i >= 1; i--) {
     if (data[i][idCol].toString() === id.toString()) {
       sheet.deleteRow(i + 1);
