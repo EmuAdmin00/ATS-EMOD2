@@ -89,24 +89,50 @@ const App: React.FC = () => {
 
   const handleAddMasterData = async (category: MasterSubView, data: any) => {
     const entry = { ...data, id: data.id || `${category.substring(0,3).toUpperCase()}-${Date.now()}` };
+    
+    // Optimistic Add
+    if (category === 'Office') setOffices([...offices, entry]);
+    if (category === 'TAC') setTacs([...tacs, entry]);
+    if (category === 'Jabatan') setPositions([...positions, entry]);
+    if (category === 'Pegawai') setEmployees([...employees, entry]);
+    if (category === 'Bahan Baku' || category === 'Produk') {
+      const itemEntry = { ...entry, category: category === 'Bahan Baku' ? 'Raw Material' : 'Finished Good' };
+      setItems([...items, itemEntry]);
+    }
+
     if (sheetUrl) {
       try {
         await googleSheetsService.postData(sheetUrl, 'addMasterData', { category, entry });
-        setTimeout(() => handleSync(true), 2000);
-      } catch (err) { console.error("Cloud error", err); }
+        setTimeout(() => handleSync(true), 3000);
+      } catch (err) { 
+        console.error("Cloud error", err); 
+        handleSync(true); // Revert on failure
+      }
     }
   };
 
   const handleUpdateMasterData = async (category: MasterSubView, data: any) => {
+    // Optimistic Update: Change the app state immediately
+    if (category === 'Office') setOffices(offices.map(o => o.id === data.id ? data : o));
+    if (category === 'TAC') setTacs(tacs.map(t => t.id === data.id ? data : t));
+    if (category === 'Jabatan') setPositions(positions.map(p => p.id === data.id ? data : p));
+    if (category === 'Pegawai') setEmployees(employees.map(e => e.nik === data.nik ? data : e));
+    if (category === 'Bahan Baku' || category === 'Produk') setItems(items.map(i => i.id === data.id ? data : i));
+
     if (sheetUrl) {
       try {
         await googleSheetsService.postData(sheetUrl, 'editMasterData', { category, entry: data });
-        setTimeout(() => handleSync(true), 2000);
-      } catch (err) { console.error("Update error", err); }
+        // Full sync after a few seconds to ensure consistency
+        setTimeout(() => handleSync(true), 3000);
+      } catch (err) { 
+        console.error("Update error", err);
+        handleSync(true); // Revert to server state if it fails
+      }
     }
   };
 
   const handleDeleteMasterData = async (category: MasterSubView, id: string) => {
+    // Optimistic Delete
     if (category === 'Office') setOffices(offices.filter(o => o.id !== id));
     if (category === 'TAC') setTacs(tacs.filter(t => t.id !== id));
     if (category === 'Jabatan') setPositions(positions.filter(p => p.id !== id));
@@ -116,7 +142,7 @@ const App: React.FC = () => {
     if (sheetUrl) {
       try {
         await googleSheetsService.postData(sheetUrl, 'deleteMasterData', { category, id });
-        setTimeout(() => handleSync(true), 3500);
+        setTimeout(() => handleSync(true), 4000);
       } catch (err) { 
         console.error("Delete error", err);
         handleSync(true);
@@ -125,38 +151,58 @@ const App: React.FC = () => {
   };
 
   const handleAddUser = async (user: User) => {
+    setUsers([...users, user]);
     if (sheetUrl) {
       try {
         await googleSheetsService.postData(sheetUrl, 'addUser', user);
-        setTimeout(() => handleSync(true), 2000);
-      } catch (err) { console.error("Add user failed", err); }
+        setTimeout(() => handleSync(true), 3000);
+      } catch (err) { 
+        console.error("Add user failed", err); 
+        handleSync(true);
+      }
     }
   };
 
   const handleUpdateUser = async (user: User) => {
+    // Optimistic update
+    setUsers(users.map(u => u.id === user.id ? user : u));
+    
     if (sheetUrl) {
       try {
         await googleSheetsService.postData(sheetUrl, 'editUser', user);
-        setTimeout(() => handleSync(true), 2000);
-      } catch (err) { console.error("Update user failed", err); }
+        setTimeout(() => handleSync(true), 3000);
+      } catch (err) { 
+        console.error("Update user failed", err); 
+        handleSync(true);
+      }
     }
   };
 
   const handleDeleteUser = async (id: string) => {
+    // Optimistic delete
+    setUsers(users.filter(u => u.id !== id));
+
     if (sheetUrl) {
       try {
         await googleSheetsService.postData(sheetUrl, 'deleteUser', { id });
-        setTimeout(() => handleSync(true), 3000);
-      } catch (err) { console.error("Delete user failed", err); }
+        setTimeout(() => handleSync(true), 4000);
+      } catch (err) { 
+        console.error("Delete user failed", err); 
+        handleSync(true);
+      }
     }
   };
 
   const handleAddProduction = async (batch: ProductionBatch) => {
+    setProductionBatches([...productionBatches, batch]);
     if (sheetUrl) {
       try {
         await googleSheetsService.postData(sheetUrl, 'addProduction', batch);
-        setTimeout(() => handleSync(true), 2000);
-      } catch (err) { console.error("Production save failed", err); }
+        setTimeout(() => handleSync(true), 3000);
+      } catch (err) { 
+        console.error("Production save failed", err); 
+        handleSync(true);
+      }
     }
   };
 
