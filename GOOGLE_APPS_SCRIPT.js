@@ -1,6 +1,6 @@
 
 /**
- * ATS-EMOD Cloud Sync Service v2.7 (Split Material/Product & Auto-Setup)
+ * ATS-EMOD Cloud Sync Service v2.8 (Full Connection Fix)
  */
 
 function doGet(e) {
@@ -50,7 +50,7 @@ function setupSheets() {
     'Offices': ['id', 'officeName', 'address', 'city', 'phone', 'fax'],
     'Tacs': ['id', 'officeId', 'name', 'address', 'phone', 'fax'],
     'Positions': ['id', 'name'],
-    'Employees': ['nik', 'name', 'positionId', 'status', 'address', 'phone', 'email', 'officeId', 'tacId'],
+    'Employees': ['nik', 'name', 'positionId', 'position','status', 'address', 'phone', 'email', 'officeId', 'tacId'],
     'RawMaterials': ['id', 'name', 'category', 'unit', 'stock', 'minStock', 'pricePerUnit', 'officeId'],
     'Products': ['id', 'name', 'category', 'unit', 'stock', 'minStock', 'pricePerUnit', 'officeId'],
     'Users': ['id', 'username', 'password', 'fullName', 'role', 'allowedViews', 'officeId'],
@@ -62,10 +62,14 @@ function setupSheets() {
     if (!sheet) {
       sheet = ss.insertSheet(name);
     }
+    // Set headers
     sheet.getRange(1, 1, 1, sheets[name].length).setValues([sheets[name]]);
     sheet.getRange(1, 1, 1, sheets[name].length).setFontWeight("bold").setBackground("#f3f3f3");
+    
+    // Freeze header
+    sheet.setFrozenRows(1);
   }
-  return "Spreadsheet initialized successfully with separate Raw Materials and Products sheets.";
+  return "Spreadsheet initialized successfully. RawMaterials and Products sheets are ready.";
 }
 
 function getSheetName(category) {
@@ -105,6 +109,7 @@ function getSheetValues(ss, name) {
     var obj = {};
     for (var j = 0; j < headers.length; j++) {
       var val = values[i][j];
+      // Special handling for array string (allowedViews)
       if (headers[j] === 'allowedViews' && typeof val === 'string') {
         obj[headers[j]] = val.split(',').map(v => v.trim());
       } else {
@@ -126,7 +131,7 @@ function findHeaderIndex(headers, target) {
 function addData(sheetName, entry) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getSheetByName(sheetName);
-  if (!sheet) return "Error: Sheet " + sheetName + " not found. Run setup first.";
+  if (!sheet) return "Error: Sheet " + sheetName + " not found.";
   
   var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
   var row = [];
@@ -138,7 +143,7 @@ function addData(sheetName, entry) {
   }
   sheet.appendRow(row);
   SpreadsheetApp.flush();
-  return "Success Add to " + sheetName;
+  return "Success Add";
 }
 
 function editData(sheetName, entry, category) {
@@ -150,12 +155,10 @@ function editData(sheetName, entry, category) {
   var headers = data[0];
   
   var searchKey = (category === 'Pegawai') ? 'nik' : 'id';
-  if (category === 'User') searchKey = 'id';
-  
   var idCol = findHeaderIndex(headers, searchKey);
   if (idCol === -1) idCol = 0;
 
-  var idToFind = entry[searchKey] || entry.id || entry.username;
+  var idToFind = entry[searchKey] || entry.id;
 
   for (var i = 1; i < data.length; i++) {
     if (data[i][idCol].toString().trim() === idToFind.toString().trim()) {
@@ -168,10 +171,10 @@ function editData(sheetName, entry, category) {
         }
       }
       SpreadsheetApp.flush();
-      return "Success Edit: " + idToFind;
+      return "Success Edit";
     }
   }
-  return "Error: ID " + idToFind + " not found";
+  return "Error: ID not found";
 }
 
 function deleteData(sheetName, id, category) {
@@ -186,13 +189,11 @@ function deleteData(sheetName, id, category) {
   var idCol = findHeaderIndex(headers, searchKey);
   if (idCol === -1) idCol = 0;
 
-  var deletedCount = 0;
   for (var i = data.length - 1; i >= 1; i--) {
     if (data[i][idCol].toString().trim() === id.toString().trim()) {
       sheet.deleteRow(i + 1);
-      deletedCount++;
     }
   }
   SpreadsheetApp.flush();
-  return "Deleted " + deletedCount + " rows";
+  return "Success Delete";
 }

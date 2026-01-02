@@ -60,9 +60,10 @@ const App: React.FC = () => {
 
         // Menggabungkan data Bahan Baku dan Produk dari Spreadsheet ke dalam satu state Items
         const cloudItems: Item[] = [];
-        if (data.rawMaterials) cloudItems.push(...data.rawMaterials);
-        if (data.products) cloudItems.push(...data.products);
+        if (data.rawMaterials && data.rawMaterials.length > 0) cloudItems.push(...data.rawMaterials);
+        if (data.products && data.products.length > 0) cloudItems.push(...data.products);
         
+        // Hanya update jika ada data valid dari cloud
         if (cloudItems.length > 0) {
           setItems(cloudItems);
         }
@@ -88,7 +89,7 @@ const App: React.FC = () => {
     setIsSyncing(true);
     try {
       await googleSheetsService.postData(sheetUrl, 'setup', {});
-      alert("Spreadsheet berhasil diinisialisasi! Sekarang Anda memiliki sheet RawMaterials dan Products terpisah.");
+      alert("Spreadsheet berhasil diinisialisasi! Sheet RawMaterials dan Products telah dibuat.");
       handleSync();
     } catch (err) {
       alert("Gagal inisialisasi: " + err);
@@ -100,11 +101,11 @@ const App: React.FC = () => {
   const handleAddMasterData = async (category: MasterSubView, data: any) => {
     const entry = { ...data, id: data.id || `${category.substring(0,3).toUpperCase()}-${Date.now()}` };
     
-    // Set category otomatis jika belum ada berdasarkan pilihan menu
+    // Set category internal aplikasi berdasarkan jenis menu
     if (category === 'Bahan Baku') entry.category = 'Raw Material';
     if (category === 'Produk') entry.category = 'Finished Good';
 
-    // Optimistic Update
+    // Optimistic Update (Update UI dulu agar cepat)
     if (category === 'Office') setOffices([...offices, entry]);
     if (category === 'TAC') setTacs([...tacs, entry]);
     if (category === 'Jabatan') setPositions([...positions, entry]);
