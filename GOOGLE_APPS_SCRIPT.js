@@ -1,6 +1,6 @@
 
 /**
- * ATS-EMOD Cloud Sync Service v2.6 (Auto-Setup & Robust Sync)
+ * ATS-EMOD Cloud Sync Service v2.7 (Split Material/Product & Auto-Setup)
  */
 
 function doGet(e) {
@@ -51,7 +51,8 @@ function setupSheets() {
     'Tacs': ['id', 'officeId', 'name', 'address', 'phone', 'fax'],
     'Positions': ['id', 'name'],
     'Employees': ['nik', 'name', 'positionId', 'status', 'address', 'phone', 'email', 'officeId', 'tacId'],
-    'Items': ['id', 'name', 'category', 'unit', 'stock', 'minStock', 'pricePerUnit', 'officeId'],
+    'RawMaterials': ['id', 'name', 'category', 'unit', 'stock', 'minStock', 'pricePerUnit', 'officeId'],
+    'Products': ['id', 'name', 'category', 'unit', 'stock', 'minStock', 'pricePerUnit', 'officeId'],
     'Users': ['id', 'username', 'password', 'fullName', 'role', 'allowedViews', 'officeId'],
     'Production': ['id', 'productId', 'outputQuantity', 'date', 'status']
   };
@@ -64,7 +65,7 @@ function setupSheets() {
     sheet.getRange(1, 1, 1, sheets[name].length).setValues([sheets[name]]);
     sheet.getRange(1, 1, 1, sheets[name].length).setFontWeight("bold").setBackground("#f3f3f3");
   }
-  return "Spreadsheet initialized successfully with all sheets and headers.";
+  return "Spreadsheet initialized successfully with separate Raw Materials and Products sheets.";
 }
 
 function getSheetName(category) {
@@ -73,8 +74,8 @@ function getSheetName(category) {
     'TAC': 'Tacs',
     'Jabatan': 'Positions',
     'Pegawai': 'Employees',
-    'Bahan Baku': 'Items',
-    'Produk': 'Items'
+    'Bahan Baku': 'RawMaterials',
+    'Produk': 'Products'
   };
   return maps[category] || category;
 }
@@ -86,7 +87,8 @@ function readAllData() {
     tacs: getSheetValues(ss, 'Tacs'),
     positions: getSheetValues(ss, 'Positions'),
     employees: getSheetValues(ss, 'Employees'),
-    items: getSheetValues(ss, 'Items'),
+    rawMaterials: getSheetValues(ss, 'RawMaterials'),
+    products: getSheetValues(ss, 'Products'),
     users: getSheetValues(ss, 'Users'),
     batches: getSheetValues(ss, 'Production')
   };
@@ -103,8 +105,7 @@ function getSheetValues(ss, name) {
     var obj = {};
     for (var j = 0; j < headers.length; j++) {
       var val = values[i][j];
-      // Handle array string for allowedViews
-      if (headers[j] === 'allowedViews' && typeof val === 'string' && val.includes(',')) {
+      if (headers[j] === 'allowedViews' && typeof val === 'string') {
         obj[headers[j]] = val.split(',').map(v => v.trim());
       } else {
         obj[headers[j]] = val;

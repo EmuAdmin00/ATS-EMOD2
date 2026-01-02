@@ -32,7 +32,6 @@ const App: React.FC = () => {
   const [lastSync, setLastSync] = useState<string | null>(null);
 
   const [selectedOfficeId, setSelectedOfficeId] = useState<string>('all');
-  const userMenuRef = useRef<HTMLDivElement>(null);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,15 +51,22 @@ const App: React.FC = () => {
     try {
       const data = await googleSheetsService.fetchAllData(sheetUrl);
       if (data) {
-        // Hanya update jika data dari cloud memiliki isi (tidak kosong)
-        // Jika cloud kosong, kita pertahankan data INITIAL_ agar aplikasi tidak blank
         if (data.offices && data.offices.length > 0) setOffices(data.offices);
         if (data.tacs && data.tacs.length > 0) setTacs(data.tacs);
         if (data.positions && data.positions.length > 0) setPositions(data.positions);
         if (data.employees && data.employees.length > 0) setEmployees(data.employees);
-        if (data.items && data.items.length > 0) setItems(data.items);
         if (data.users && data.users.length > 0) setUsers(data.users); 
         if (data.batches && data.batches.length > 0) setProductionBatches(data.batches);
+
+        // Menggabungkan data Bahan Baku dan Produk dari Spreadsheet ke dalam satu state Items
+        const cloudItems: Item[] = [];
+        if (data.rawMaterials) cloudItems.push(...data.rawMaterials);
+        if (data.products) cloudItems.push(...data.products);
+        
+        if (cloudItems.length > 0) {
+          setItems(cloudItems);
+        }
+
         setLastSync(new Date().toLocaleTimeString());
       }
     } catch (err) {
@@ -82,7 +88,7 @@ const App: React.FC = () => {
     setIsSyncing(true);
     try {
       await googleSheetsService.postData(sheetUrl, 'setup', {});
-      alert("Spreadsheet berhasil diinisialisasi! Header tabel telah dibuat.");
+      alert("Spreadsheet berhasil diinisialisasi! Sekarang Anda memiliki sheet RawMaterials dan Products terpisah.");
       handleSync();
     } catch (err) {
       alert("Gagal inisialisasi: " + err);
@@ -93,6 +99,12 @@ const App: React.FC = () => {
 
   const handleAddMasterData = async (category: MasterSubView, data: any) => {
     const entry = { ...data, id: data.id || `${category.substring(0,3).toUpperCase()}-${Date.now()}` };
+    
+    // Set category otomatis jika belum ada berdasarkan pilihan menu
+    if (category === 'Bahan Baku') entry.category = 'Raw Material';
+    if (category === 'Produk') entry.category = 'Finished Good';
+
+    // Optimistic Update
     if (category === 'Office') setOffices([...offices, entry]);
     if (category === 'TAC') setTacs([...tacs, entry]);
     if (category === 'Jabatan') setPositions([...positions, entry]);
@@ -102,7 +114,7 @@ const App: React.FC = () => {
     if (sheetUrl) {
       try {
         await googleSheetsService.postData(sheetUrl, 'addMasterData', { category, entry });
-        setTimeout(() => handleSync(true), 2000);
+        setTimeout(() => handleSync(true), 2500);
       } catch (err) { handleSync(true); }
     }
   };
