@@ -1,7 +1,6 @@
 
 /**
- * ATS-EMOD Cloud Sync Service v2.5 (High Consistency Two-Way Sync)
- * Mendukung Add, Edit, Delete untuk Master Data, Users, dan Production.
+ * ATS-EMOD Cloud Sync Service v2.6 (Auto-Setup & Robust Sync)
  */
 
 function doGet(e) {
@@ -19,7 +18,9 @@ function doPost(e) {
     var data = request.data;
     var result = "Action not found";
 
-    if (action === 'addMasterData') {
+    if (action === 'setup') {
+      result = setupSheets();
+    } else if (action === 'addMasterData') {
       result = addData(getSheetName(data.category), data.entry);
     } else if (action === 'editMasterData') {
       result = editData(getSheetName(data.category), data.entry, data.category);
@@ -41,6 +42,29 @@ function doPost(e) {
     return ContentService.createTextOutput("Error: " + err.message)
       .setMimeType(ContentService.MimeType.TEXT);
   }
+}
+
+function setupSheets() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheets = {
+    'Offices': ['id', 'officeName', 'address', 'city', 'phone', 'fax'],
+    'Tacs': ['id', 'officeId', 'name', 'address', 'phone', 'fax'],
+    'Positions': ['id', 'name'],
+    'Employees': ['nik', 'name', 'positionId', 'status', 'address', 'phone', 'email', 'officeId', 'tacId'],
+    'Items': ['id', 'name', 'category', 'unit', 'stock', 'minStock', 'pricePerUnit', 'officeId'],
+    'Users': ['id', 'username', 'password', 'fullName', 'role', 'allowedViews', 'officeId'],
+    'Production': ['id', 'productId', 'outputQuantity', 'date', 'status']
+  };
+
+  for (var name in sheets) {
+    var sheet = ss.getSheetByName(name);
+    if (!sheet) {
+      sheet = ss.insertSheet(name);
+    }
+    sheet.getRange(1, 1, 1, sheets[name].length).setValues([sheets[name]]);
+    sheet.getRange(1, 1, 1, sheets[name].length).setFontWeight("bold").setBackground("#f3f3f3");
+  }
+  return "Spreadsheet initialized successfully with all sheets and headers.";
 }
 
 function getSheetName(category) {
@@ -78,7 +102,13 @@ function getSheetValues(ss, name) {
   for (var i = 1; i < values.length; i++) {
     var obj = {};
     for (var j = 0; j < headers.length; j++) {
-      obj[headers[j]] = values[i][j];
+      var val = values[i][j];
+      // Handle array string for allowedViews
+      if (headers[j] === 'allowedViews' && typeof val === 'string' && val.includes(',')) {
+        obj[headers[j]] = val.split(',').map(v => v.trim());
+      } else {
+        obj[headers[j]] = val;
+      }
     }
     data.push(obj);
   }
@@ -95,13 +125,15 @@ function findHeaderIndex(headers, target) {
 function addData(sheetName, entry) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getSheetByName(sheetName);
-  if (!sheet) return "Error: Sheet " + sheetName + " not found";
+  if (!sheet) return "Error: Sheet " + sheetName + " not found. Run setup first.";
   
   var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
   var row = [];
   for (var i = 0; i < headers.length; i++) {
     var key = headers[i];
-    row.push(entry[key] !== undefined ? entry[key] : "");
+    var val = entry[key] !== undefined ? entry[key] : "";
+    if (Array.isArray(val)) val = val.join(', ');
+    row.push(val);
   }
   sheet.appendRow(row);
   SpreadsheetApp.flush();
@@ -116,7 +148,6 @@ function editData(sheetName, entry, category) {
   var data = sheet.getDataRange().getValues();
   var headers = data[0];
   
-  // Penentuan Key Unik
   var searchKey = (category === 'Pegawai') ? 'nik' : 'id';
   if (category === 'User') searchKey = 'id';
   
@@ -124,23 +155,22 @@ function editData(sheetName, entry, category) {
   if (idCol === -1) idCol = 0;
 
   var idToFind = entry[searchKey] || entry.id || entry.username;
-  if (!idToFind) return "Error: No ID found in request data";
 
   for (var i = 1; i < data.length; i++) {
-    // Perbandingan string yang bersih untuk menghindari kegagalan tipe data
     if (data[i][idCol].toString().trim() === idToFind.toString().trim()) {
       for (var j = 0; j < headers.length; j++) {
         var headerName = headers[j];
-        // Hanya update kolom jika datanya dikirim dari App
         if (entry[headerName] !== undefined) {
-          sheet.getRange(i + 1, j + 1).setValue(entry[headerName]);
+          var val = entry[headerName];
+          if (Array.isArray(val)) val = val.join(', ');
+          sheet.getRange(i + 1, j + 1).setValue(val);
         }
       }
-      SpreadsheetApp.flush(); // Paksa simpan perubahan ke file fisik
-      return "Success Edit: " + idToFind + " in " + sheetName;
+      SpreadsheetApp.flush();
+      return "Success Edit: " + idToFind;
     }
   }
-  return "Error: Could not find ID " + idToFind + " in " + sheetName;
+  return "Error: ID " + idToFind + " not found";
 }
 
 function deleteData(sheetName, id, category) {
@@ -156,14 +186,12 @@ function deleteData(sheetName, id, category) {
   if (idCol === -1) idCol = 0;
 
   var deletedCount = 0;
-  // Loop terbalik (bottom-up) adalah kunci untuk hapus baris yang aman
   for (var i = data.length - 1; i >= 1; i--) {
     if (data[i][idCol].toString().trim() === id.toString().trim()) {
       sheet.deleteRow(i + 1);
       deletedCount++;
     }
   }
-  
   SpreadsheetApp.flush();
-  return "Deleted " + deletedCount + " rows from " + sheetName;
+  return "Deleted " + deletedCount + " rows";
 }

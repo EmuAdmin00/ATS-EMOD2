@@ -10,7 +10,6 @@ import { SystemSettings } from './components/SystemSettings';
 import { UserManagement } from './components/UserManagement';
 import { googleSheetsService } from './services/googleSheetsService';
 
-// Updated with user provided URL and Spreadsheet ID
 const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyqx_mmbWFKJ1kzUo8tBLx3l2jBHAg-HCqidlkk9vFKehoznB4W3027Ahixadk6ICOq/exec';
 const SPREADSHEET_LINK = 'https://docs.google.com/spreadsheets/d/1NWJ8BY5U1fzuBsuIjWQ_mtZpK0KRIaJdW6axDpy6FR4/edit';
 
@@ -33,18 +32,7 @@ const App: React.FC = () => {
   const [lastSync, setLastSync] = useState<string | null>(null);
 
   const [selectedOfficeId, setSelectedOfficeId] = useState<string>('all');
-  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
-        setIsUserMenuOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,13 +52,15 @@ const App: React.FC = () => {
     try {
       const data = await googleSheetsService.fetchAllData(sheetUrl);
       if (data) {
-        if (data.offices) setOffices(data.offices);
-        if (data.tacs) setTacs(data.tacs);
-        if (data.positions) setPositions(data.positions);
-        if (data.employees) setEmployees(data.employees);
-        if (data.items) setItems(data.items);
-        if (data.users) setUsers(data.users); 
-        if (data.batches) setProductionBatches(data.batches);
+        // Hanya update jika data dari cloud memiliki isi (tidak kosong)
+        // Jika cloud kosong, kita pertahankan data INITIAL_ agar aplikasi tidak blank
+        if (data.offices && data.offices.length > 0) setOffices(data.offices);
+        if (data.tacs && data.tacs.length > 0) setTacs(data.tacs);
+        if (data.positions && data.positions.length > 0) setPositions(data.positions);
+        if (data.employees && data.employees.length > 0) setEmployees(data.employees);
+        if (data.items && data.items.length > 0) setItems(data.items);
+        if (data.users && data.users.length > 0) setUsers(data.users); 
+        if (data.batches && data.batches.length > 0) setProductionBatches(data.batches);
         setLastSync(new Date().toLocaleTimeString());
       }
     } catch (err) {
@@ -88,33 +78,36 @@ const App: React.FC = () => {
     }
   }, [sheetUrl, currentUser]);
 
+  const handleInitializeCloud = async () => {
+    setIsSyncing(true);
+    try {
+      await googleSheetsService.postData(sheetUrl, 'setup', {});
+      alert("Spreadsheet berhasil diinisialisasi! Header tabel telah dibuat.");
+      handleSync();
+    } catch (err) {
+      alert("Gagal inisialisasi: " + err);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   const handleAddMasterData = async (category: MasterSubView, data: any) => {
-    const newId = data.id || `${category.substring(0,3).toUpperCase()}-${Date.now()}`;
-    const entry = { ...data, id: newId };
-    
-    // Optimistic Update
+    const entry = { ...data, id: data.id || `${category.substring(0,3).toUpperCase()}-${Date.now()}` };
     if (category === 'Office') setOffices([...offices, entry]);
     if (category === 'TAC') setTacs([...tacs, entry]);
     if (category === 'Jabatan') setPositions([...positions, entry]);
     if (category === 'Pegawai') setEmployees([...employees, entry]);
-    if (category === 'Bahan Baku' || category === 'Produk') {
-      const itemEntry = { ...entry, category: category === 'Bahan Baku' ? 'Raw Material' : 'Finished Good' };
-      setItems([...items, itemEntry]);
-    }
+    if (category === 'Bahan Baku' || category === 'Produk') setItems([...items, entry]);
 
     if (sheetUrl) {
       try {
         await googleSheetsService.postData(sheetUrl, 'addMasterData', { category, entry });
-        setTimeout(() => handleSync(true), 3000);
-      } catch (err) { 
-        console.error("Cloud Error", err); 
-        handleSync(true); 
-      }
+        setTimeout(() => handleSync(true), 2000);
+      } catch (err) { handleSync(true); }
     }
   };
 
   const handleUpdateMasterData = async (category: MasterSubView, data: any) => {
-    // Optimistic UI Update
     if (category === 'Office') setOffices(offices.map(o => o.id === data.id ? data : o));
     if (category === 'TAC') setTacs(tacs.map(t => t.id === data.id ? data : t));
     if (category === 'Jabatan') setPositions(positions.map(p => p.id === data.id ? data : p));
@@ -123,19 +116,13 @@ const App: React.FC = () => {
 
     if (sheetUrl) {
       try {
-        // Kirim data lengkap ke Spreadsheet
         await googleSheetsService.postData(sheetUrl, 'editMasterData', { category, entry: data });
-        // Verifikasi hasil sinkronisasi setelah delay kecil
         setTimeout(() => handleSync(true), 3000);
-      } catch (err) { 
-        console.error("Update Cloud Error", err);
-        handleSync(true);
-      }
+      } catch (err) { handleSync(true); }
     }
   };
 
   const handleDeleteMasterData = async (category: MasterSubView, id: string) => {
-    // Optimistic Delete
     if (category === 'Office') setOffices(offices.filter(o => o.id !== id));
     if (category === 'TAC') setTacs(tacs.filter(t => t.id !== id));
     if (category === 'Jabatan') setPositions(positions.filter(p => p.id !== id));
@@ -146,10 +133,7 @@ const App: React.FC = () => {
       try {
         await googleSheetsService.postData(sheetUrl, 'deleteMasterData', { category, id });
         setTimeout(() => handleSync(true), 4000);
-      } catch (err) { 
-        console.error("Delete Cloud Error", err);
-        handleSync(true);
-      }
+      } catch (err) { handleSync(true); }
     }
   };
 
@@ -299,7 +283,7 @@ const App: React.FC = () => {
           {activeView === 'Inventory' && <Inventory items={items} offices={offices} initialOfficeId={selectedOfficeId} />}
           {activeView === 'Production' && <Production items={items.filter(i => selectedOfficeId === 'all' || i.officeId === selectedOfficeId)} batches={productionBatches} onAddBatch={handleAddProduction} />}
           {activeView === 'User Management' && <UserManagement users={users} offices={offices} onAddUser={handleAddUser} onUpdateUser={handleUpdateUser} onDeleteUser={handleDeleteUser} />}
-          {activeView === 'System' && <SystemSettings data={{ items, offices }} scriptUrl={sheetUrl} spreadsheetUrl={SPREADSHEET_LINK} lastSync={lastSync} />}
+          {activeView === 'System' && <SystemSettings data={{ items, offices }} scriptUrl={sheetUrl} spreadsheetUrl={SPREADSHEET_LINK} lastSync={lastSync} onSetup={handleInitializeCloud} />}
         </div>
       </div>
     </div>
