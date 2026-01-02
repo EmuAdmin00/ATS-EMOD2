@@ -1,14 +1,24 @@
 
 /**
- * ATS-EMOD Cloud Sync Service v2.8 (Full Connection Fix)
+ * ATS-EMOD Cloud Sync Service v2.9 (Status Check Enabled)
  */
 
 function doGet(e) {
   var action = e.parameter.action;
+  
   if (action === 'readAll') {
     return ContentService.createTextOutput(JSON.stringify(readAllData()))
       .setMimeType(ContentService.MimeType.JSON);
   }
+
+  // Jika diakses langsung tanpa parameter ?action=...
+  var statusMessage = "ATS-EMOD Cloud API Status: ONLINE\n\n" +
+                      "Gunakan parameter berikut untuk melihat data:\n" +
+                      "- Untuk JSON: " + ScriptApp.getService().getUrl() + "?action=readAll\n\n" +
+                      "Pastikan Anda sudah menjalankan 'Setup' dari aplikasi ATS-EMOD untuk membuat tabel.";
+                      
+  return ContentService.createTextOutput(statusMessage)
+    .setMimeType(ContentService.MimeType.TEXT);
 }
 
 function doPost(e) {
@@ -50,7 +60,7 @@ function setupSheets() {
     'Offices': ['id', 'officeName', 'address', 'city', 'phone', 'fax'],
     'Tacs': ['id', 'officeId', 'name', 'address', 'phone', 'fax'],
     'Positions': ['id', 'name'],
-    'Employees': ['nik', 'name', 'positionId', 'position','status', 'address', 'phone', 'email', 'officeId', 'tacId'],
+    'Employees': ['nik', 'name', 'positionId', 'status', 'address', 'phone', 'email', 'officeId', 'tacId'],
     'RawMaterials': ['id', 'name', 'category', 'unit', 'stock', 'minStock', 'pricePerUnit', 'officeId'],
     'Products': ['id', 'name', 'category', 'unit', 'stock', 'minStock', 'pricePerUnit', 'officeId'],
     'Users': ['id', 'username', 'password', 'fullName', 'role', 'allowedViews', 'officeId'],
@@ -109,7 +119,6 @@ function getSheetValues(ss, name) {
     var obj = {};
     for (var j = 0; j < headers.length; j++) {
       var val = values[i][j];
-      // Special handling for array string (allowedViews)
       if (headers[j] === 'allowedViews' && typeof val === 'string') {
         obj[headers[j]] = val.split(',').map(v => v.trim());
       } else {
